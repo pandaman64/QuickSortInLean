@@ -80,8 +80,6 @@ theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabi
     exact Nat.le_trans ij jl
 termination_by partition'_mid α result ord inhabited arr i j last ij jl la => last - j
 
--- #eval partition' 5 #[7, 9, 5, 2, 8, 2, 5, 4, 10, 5] 0 0 9
-
 def partition [Ord α] [Inhabited α]
   (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
   ({ mid : Nat // first ≤ mid ∧ mid ≤ last } × Array α) :=
@@ -89,6 +87,13 @@ def partition [Ord α] [Inhabited α]
   let result := partition' arr first first last ij jl la
   let property := partition'_mid arr first first last ij jl la (by rfl)
   (⟨result.1, property⟩, result.2)
+
+theorem partition_size [Ord α] [Inhabited α]
+  (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
+  (partition arr first last jl la).2.size = arr.size := by
+  unfold partition
+  simp
+  exact partition'_size arr first first last (by simp) jl la (by rfl)
 
 theorem Nat.le_or_gt : {m n : Nat} → m ≤ n ∨ m > n
   | m, n =>
@@ -136,20 +141,35 @@ theorem quickSort'_termination {first mid last : Nat} :
     . simp_arith [first_mid]
   exact And.intro (by assumption) (by assumption)
 
-def quickSort' [Ord α] [Inhabited α] (arr : Array α) (first last : Nat) (_ : last < arr.size) : Array α :=
+def quickSort' [Ord α] [Inhabited α] (arr : Array α) (first last : Nat) (la : last < arr.size) :
+  ({ arr' : Array α  // arr'.size = arr.size }) :=
+  let size := arr.size
   if lt : first < last then
-    have : first ≤ last := by
+    have fl : first ≤ last := by
       apply Nat.le_of_lt
       assumption
-    let (⟨mid, ⟨first_mid, mid_last⟩⟩, arr) := partition arr first last this (by assumption)
-    have ⟨_, _⟩ := quickSort'_termination lt first_mid mid_last
-    have : mid - 1 < arr.size := by
-      -- mid - 1 ≤ mid ≤ last < arr.size
-      sorry
-    let arr := quickSort' arr first (mid - 1) (by simp[dbgTraceIfShared, *])
-    quickSort' arr (mid + 1) last (by sorry)
+    -- Need to use match to put the equality in the context
+    match hp : partition arr first last fl la with
+    | (⟨mid, ⟨first_mid, mid_last⟩⟩, arr) =>
+      have ⟨_, _⟩ := quickSort'_termination lt first_mid mid_last
+      have eq1 : size = arr.size := by
+        have : arr.size = (partition _ first last fl la).snd.size := by simp[hp]
+        rw [this]
+        have : (partition _ first last fl la).snd.size = size := by
+          apply partition_size
+        simp [this]
+      have : mid - 1 < arr.size := by
+        -- mid - 1 ≤ mid ≤ last < size
+        have : mid - 1 ≤ last := Nat.le_trans (Nat.sub_le mid 1) mid_last
+        have : mid - 1 < size := Nat.lt_of_le_of_lt this (by assumption)
+        exact eq1 ▸ this
+      match hq : quickSort' arr first (mid - 1) this with
+      | ⟨arr, eq2⟩ =>
+        have eq3 : arr.size = size := by rw [eq2, eq1]
+        have : last < arr.size := by rw [eq3]; assumption
+        (eq3 ▸ quickSort' arr (mid + 1) last (by assumption) : { arr' : Array α // arr'.size = size })
   else
-    arr
+    ⟨arr, by rfl⟩
 termination_by quickSort' _ _ first last _ => last - first
 
 def quickSort [Ord α] [Inhabited α] (arr : Array α) : Array α :=
