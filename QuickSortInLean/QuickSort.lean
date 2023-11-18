@@ -1,4 +1,4 @@
-def partition' [Ord α] [Inhabited α]
+def partition' [Ord α]
   (arr : Array α) (i j last : Nat) (ij : i ≤ j) (jl : j ≤ last) (la : last < arr.size): (Nat × Array α) :=
   have : i < arr.size := by
     apply Nat.lt_of_le_of_lt _ la
@@ -21,7 +21,7 @@ def partition' [Ord α] [Inhabited α]
     (i, arr)
 termination_by partition' _ _ j last ij jl la => last - j
 
-theorem partition'_size {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabited α]
+theorem partition'_size {α : Type} {result : (Nat × Array α)} [Ord α]
    (arr : Array α) (i j last : Nat) (ij : i ≤ j) (jl : j ≤ last) (la : last < arr.size) :
    partition' arr i j last ij jl la = result →
    result.2.size = arr.size := by
@@ -47,9 +47,9 @@ theorem partition'_size {α : Type} {result : (Nat × Array α)} [Ord α] [Inhab
     intro eq
     rw [←eq]
     simp
-termination_by partition'_size α result ord inhabited arr i j last ij jl la => last - j
+termination_by partition'_size α result ord arr i j last ij jl la => last - j
 
-theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabited α]
+theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α]
   (arr : Array α) (i j last : Nat) (ij : i ≤ j) (jl : j ≤ last) (la : last < arr.size) :
   partition' arr i j last ij jl la = result →
   i ≤ result.1 ∧ result.1 ≤ last := by
@@ -78,9 +78,9 @@ theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabi
       rw [←eq]
     simp [this]
     exact Nat.le_trans ij jl
-termination_by partition'_mid α result ord inhabited arr i j last ij jl la => last - j
+termination_by partition'_mid α result ord arr i j last ij jl la => last - j
 
-def partition [Ord α] [Inhabited α]
+def partition [Ord α]
   (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
   ({ mid : Nat // first ≤ mid ∧ mid ≤ last } × Array α) :=
   have ij : first ≤ first := by simp
@@ -88,7 +88,7 @@ def partition [Ord α] [Inhabited α]
   let property := partition'_mid arr first first last ij jl la (by rfl)
   (⟨result.1, property⟩, result.2)
 
-theorem partition_size [Ord α] [Inhabited α]
+theorem partition_size [Ord α]
   (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
   (partition arr first last jl la).2.size = arr.size := by
   unfold partition
@@ -141,7 +141,7 @@ theorem quickSort'_termination {first mid last : Nat} :
     . simp_arith [first_mid]
   exact And.intro (by assumption) (by assumption)
 
-def quickSort' [Ord α] [Inhabited α] (arr : Array α) (first last : Nat) (la : last < arr.size) :
+def quickSort' [Ord α] (arr : Array α) (first last : Nat) (la : last < arr.size) :
   ({ arr' : Array α  // arr'.size = arr.size }) :=
   let size := arr.size
   if lt : first < last then
@@ -172,7 +172,7 @@ def quickSort' [Ord α] [Inhabited α] (arr : Array α) (first last : Nat) (la :
     ⟨arr, by rfl⟩
 termination_by quickSort' _ _ first last _ => last - first
 
-def quickSort [Ord α] [Inhabited α] (arr : Array α) : Array α :=
+def quickSort [Ord α] (arr : Array α) : Array α :=
   if _ : arr.size > 0 then
     quickSort' arr 0 (arr.size - 1) (by simp [Nat.sub_lt, *])
   else
