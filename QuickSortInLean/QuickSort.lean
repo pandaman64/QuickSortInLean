@@ -1,36 +1,56 @@
 def partition' [Ord α] [Inhabited α]
-  (arr : Array α) (i j last : Nat) (h : last < arr.size): (Nat × Array α) :=
-  if j < last then
-    match compare arr[j]! arr[last]! with
+  (arr : Array α) (i j last : Nat) (h1 : i ≤ last) (h2 : last < arr.size): (Nat × Array α) :=
+  if _ : j < last then
+    have : j < arr.size := sorry
+    match compare arr[j] arr[last] with
     | .lt | .eq =>
       have _ : i < arr.size := sorry
       have _ : j < arr.size := sorry
       let arr := (dbgTraceIfShared "arr2" arr).swap ⟨i, by assumption⟩ ⟨j, by assumption⟩
-      partition' (dbgTraceIfShared "arr3" arr) (i + 1) (j + 1) last (by simp [dbgTraceIfShared, h])
-    | .gt => partition' (dbgTraceIfShared "arr4" arr) i (j + 1) last h
+      partition' (dbgTraceIfShared "arr3" arr) (i + 1) (j + 1) last (by sorry) (by simp [dbgTraceIfShared, h2])
+    | .gt => partition' (dbgTraceIfShared "arr4" arr) i (j + 1) last h1 h2
   else
-    let arr := (dbgTraceIfShared "arr5" arr).swap! i last
+    have : i < arr.size := sorry
+    have : last < arr.size := sorry
+    let arr := (dbgTraceIfShared "arr5" arr).swap ⟨i, by assumption⟩ ⟨last, by assumption⟩
     (i, arr)
-termination_by partition' _ _ j last h => last - j
+termination_by partition' _ _ j last h1 h2 => last - j
+
+theorem partition'_size {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabited α]
+   (arr : Array α) (i j last : Nat) (h1 : i ≤ last) (h2 : last < arr.size) :
+   partition' arr i j last h1 h2 = result →
+   result.2.size = arr.size := by
+   unfold partition'
+   split <;> simp
+   case inl _ =>
+    split
+    -- | .lt | .eq
+    case h_1 | h_2 => sorry
+    -- | .gt
+    case h_3 => sorry
+   case inr _ =>
+    simp [dbgTraceIfShared]
+    intro eq
+    rw [←eq]
+    simp
 
 theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabited α]
-  (arr : Array α) (i j last : Nat) (h : last < arr.size) :
+  (arr : Array α) (i j last : Nat) (h1 : i ≤ last) (h2 : last < arr.size) :
   i ≤ j →
   j ≤ last →
-  partition' arr i j last h = result →
+  partition' arr i j last h1 h2 = result →
   i ≤ result.1 ∧ result.1 ≤ last := by
   intro ij jl
   unfold partition'
-  split
+  split <;> simp
   case inl jl =>
     split
     -- | .lt | .eq
     case h_1 | h_2 =>
-      simp
       intro eq
       have ij : i + 1 ≤ j + 1 := Nat.add_le_add_right ij 1
       have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      let ⟨i_result, result_last⟩ := partition'_mid _ (i + 1) (j + 1) last _ ij jl eq
+      let ⟨i_result, result_last⟩ := partition'_mid _ (i + 1) (j + 1) last _ _ ij jl eq
       have : i ≤ result.1 := by
         apply Nat.le_trans (by simp_arith) i_result
       exact ⟨by assumption, by assumption⟩
@@ -39,23 +59,22 @@ theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabi
       intro eq
       have ij : i ≤ j + 1 := Nat.le_trans ij (by simp_arith)
       have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      exact partition'_mid _ i (j + 1) last h ij jl eq
+      exact partition'_mid _ i (j + 1) last _ _ ij jl eq
   case inr njl =>
-    simp
     intro eq
     have : result.1 = i := by
       rw [←eq]
     simp [this]
     exact Nat.le_trans ij jl
-termination_by partition'_mid α result ord inhabited arr i j last h ij jl => last - j
+termination_by partition'_mid α result ord inhabited arr i j last h1 h2 ij jl => last - j
 
 -- #eval partition' 5 #[7, 9, 5, 2, 8, 2, 5, 4, 10, 5] 0 0 9
 
 def partition [Ord α] [Inhabited α]
   (arr : Array α) (first last : Nat) (_ : first ≤ last) (_ : last < arr.size) :
   ({ mid : Nat // first ≤ mid ∧ mid ≤ last } × Array α) :=
-  let result := partition' arr first first last (by assumption)
-  let property := partition'_mid (result := result) arr first first last (by assumption) (by simp) (by assumption) (by rfl)
+  let result := partition' arr first first last (by assumption) (by assumption)
+  let property := partition'_mid (result := result) arr first first last (by assumption) (by assumption) (by simp) (by assumption) (by rfl)
   (⟨result.1, property⟩, result.2)
 
 theorem Nat.le_or_gt : {m n : Nat} → m ≤ n ∨ m > n
