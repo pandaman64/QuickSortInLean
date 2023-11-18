@@ -26,18 +26,28 @@ theorem partition'_size {α : Type} {result : (Nat × Array α)} [Ord α] [Inhab
    partition' arr i j last ij jl la = result →
    result.2.size = arr.size := by
    unfold partition'
-   split <;> simp
-   case inl _ =>
+   split <;> simp [dbgTraceIfShared]
+   case inl jl =>
     split
     -- | .lt | .eq
-    case h_1 | h_2 => sorry
+    case h_1 | h_2 =>
+      intro eq
+      have ij : i + 1 ≤ j + 1 := Nat.add_le_add_right ij 1
+      have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
+      let ih := partition'_size _ (i + 1) (j + 1) last ij jl (by simp[dbgTraceIfShared, la]) eq
+      simp at ih
+      assumption
     -- | .gt
-    case h_3 => sorry
+    case h_3 =>
+      intro eq
+      have ij : i ≤ j + 1 := Nat.le_trans ij (by simp_arith)
+      have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
+      exact partition'_size _ i (j + 1) last ij jl la eq
    case inr _ =>
-    simp [dbgTraceIfShared]
     intro eq
     rw [←eq]
     simp
+termination_by partition'_size α result ord inhabited arr i j last ij jl la => last - j
 
 theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabited α]
   (arr : Array α) (i j last : Nat) (ij : i ≤ j) (jl : j ≤ last) (la : last < arr.size) :
