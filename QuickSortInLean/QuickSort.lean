@@ -174,7 +174,7 @@ termination_by quickSort' _ _ first last _ => last - first
 
 def quickSort [Ord α] (arr : Array α) : Array α :=
   if _ : arr.size > 0 then
-    quickSort' arr 0 (arr.size - 1) (by simp [Nat.sub_lt, *])
+    quickSort' arr 0 (arr.size - 1) (Nat.sub_lt (by assumption) (by decide))
   else
     arr
 

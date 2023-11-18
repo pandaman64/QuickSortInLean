@@ -14,3 +14,5 @@ lean_exe «quicksortinlean» where
   -- `runFrontend`) at the expense of increased binary size on Linux.
   -- Remove this line if you do not need such functionality.
   supportInterpreter := true
+
+require «std» from git "https://github.com/leanprover/std4" @ "main"
