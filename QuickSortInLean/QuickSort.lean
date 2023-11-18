@@ -1,21 +1,23 @@
 def partition' [Ord α] [Inhabited α]
-  (arr : Array α) (i j last : Nat) : (Nat × Array α) :=
+  (arr : Array α) (i j last : Nat) (h : last < arr.size): (Nat × Array α) :=
   if j < last then
     match compare arr[j]! arr[last]! with
     | .lt | .eq =>
-      let arr := (dbgTraceIfShared "arr2" arr).swap! i j
-      partition' (dbgTraceIfShared "arr3" arr) (i + 1) (j + 1) last
-    | .gt => partition' (dbgTraceIfShared "arr4" arr) i (j + 1) last
+      have _ : i < arr.size := sorry
+      have _ : j < arr.size := sorry
+      let arr := (dbgTraceIfShared "arr2" arr).swap ⟨i, by assumption⟩ ⟨j, by assumption⟩
+      partition' (dbgTraceIfShared "arr3" arr) (i + 1) (j + 1) last (by simp [dbgTraceIfShared, h])
+    | .gt => partition' (dbgTraceIfShared "arr4" arr) i (j + 1) last h
   else
     let arr := (dbgTraceIfShared "arr5" arr).swap! i last
     (i, arr)
-termination_by partition' _ _ j last => last - j
+termination_by partition' _ _ j last h => last - j
 
 theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabited α]
-  (arr : Array α) (i j last : Nat) :
+  (arr : Array α) (i j last : Nat) (h : last < arr.size) :
   i ≤ j →
   j ≤ last →
-  partition' arr i j last = result →
+  partition' arr i j last h = result →
   i ≤ result.1 ∧ result.1 ≤ last := by
   intro ij jl
   unfold partition'
@@ -28,7 +30,7 @@ theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabi
       intro eq
       have ij : i + 1 ≤ j + 1 := Nat.add_le_add_right ij 1
       have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      let ⟨i_result, result_last⟩ := partition'_mid _ (i + 1) (j + 1) last ij jl eq
+      let ⟨i_result, result_last⟩ := partition'_mid _ (i + 1) (j + 1) last _ ij jl eq
       have : i ≤ result.1 := by
         apply Nat.le_trans (by simp_arith) i_result
       exact ⟨by assumption, by assumption⟩
@@ -37,7 +39,7 @@ theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabi
       intro eq
       have ij : i ≤ j + 1 := Nat.le_trans ij (by simp_arith)
       have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      exact partition'_mid _ i (j + 1) last ij jl eq
+      exact partition'_mid _ i (j + 1) last h ij jl eq
   case inr njl =>
     simp
     intro eq
@@ -45,14 +47,15 @@ theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α] [Inhabi
       rw [←eq]
     simp [this]
     exact Nat.le_trans ij jl
-termination_by partition'_mid α result ord inhabited arr i j last ij jl => last - j
+termination_by partition'_mid α result ord inhabited arr i j last h ij jl => last - j
 
 -- #eval partition' 5 #[7, 9, 5, 2, 8, 2, 5, 4, 10, 5] 0 0 9
 
 def partition [Ord α] [Inhabited α]
-  (arr : Array α) (first last : Nat) (_ : first ≤ last) : ({ mid : Nat // first ≤ mid ∧ mid ≤ last } × Array α) :=
-  let result := partition' arr first first last
-  let property := partition'_mid (result := result) arr first first last (by simp) (by assumption) (by rfl)
+  (arr : Array α) (first last : Nat) (_ : first ≤ last) (_ : last < arr.size) :
+  ({ mid : Nat // first ≤ mid ∧ mid ≤ last } × Array α) :=
+  let result := partition' arr first first last (by assumption)
+  let property := partition'_mid (result := result) arr first first last (by assumption) (by simp) (by assumption) (by rfl)
   (⟨result.1, property⟩, result.2)
 
 theorem Nat.le_or_gt : {m n : Nat} → m ≤ n ∨ m > n
@@ -101,21 +104,27 @@ theorem quickSort'_termination {first mid last : Nat} :
     . simp_arith [first_mid]
   exact And.intro (by assumption) (by assumption)
 
-def quickSort' [Ord α] [Inhabited α] (arr : Array α) (first last : Nat) : Array α :=
+def quickSort' [Ord α] [Inhabited α] (arr : Array α) (first last : Nat) (_ : last < arr.size) : Array α :=
   if lt : first < last then
     have : first ≤ last := by
       apply Nat.le_of_lt
       assumption
-    let (⟨mid, ⟨first_mid, mid_last⟩⟩, arr) := partition (dbgTraceIfShared "arr6" arr) first last this
+    let (⟨mid, ⟨first_mid, mid_last⟩⟩, arr) := partition (dbgTraceIfShared "arr6" arr) first last this (by assumption)
     have ⟨_, _⟩ := quickSort'_termination lt first_mid mid_last
-    let arr := quickSort' (dbgTraceIfShared "arr7" arr) first (mid - 1)
-    quickSort' (dbgTraceIfShared "arr8" arr) (mid + 1) last
+    have : mid - 1 < arr.size := by
+      -- mid - 1 ≤ mid ≤ last < arr.size
+      sorry
+    let arr := quickSort' (dbgTraceIfShared "arr7" arr) first (mid - 1) (by simp[dbgTraceIfShared, *])
+    quickSort' (dbgTraceIfShared "arr8" arr) (mid + 1) last (by sorry)
   else
     arr
-termination_by quickSort' _ _ first last => last - first
+termination_by quickSort' _ _ first last _ => last - first
 
 def quickSort [Ord α] [Inhabited α] (arr : Array α) : Array α :=
-  quickSort' arr 0 (arr.size - 1)
+  if _ : arr.size > 0 then
+    quickSort' arr 0 (arr.size - 1) (by simp [Nat.sub_lt, *])
+  else
+    arr
 
 -- #eval quickSort #[7, 5, 6, 2, 8, 1, 9, 4, 10, 3]
 -- #eval quickSort #[3, 4, 5, 2, 1, 5, 3, 2, 1, 4]
