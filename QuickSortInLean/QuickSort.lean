@@ -9,15 +9,15 @@ def partition' [Ord α] [Inhabited α]
     | .lt | .eq =>
       have : i + 1 ≤ j + 1 := Nat.add_le_add_right ij 1
       have : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      let arr := (dbgTraceIfShared "arr2" arr).swap ⟨i, by assumption⟩ ⟨j, by assumption⟩
-      partition' (dbgTraceIfShared "arr3" arr) (i + 1) (j + 1) last
+      let arr := (dbgTraceIfShared "swap1" arr).swap ⟨i, by assumption⟩ ⟨j, by assumption⟩
+      partition' arr (i + 1) (j + 1) last
         (by assumption) (by assumption) (by simp [dbgTraceIfShared, la])
     | .gt =>
       have : i ≤ j + 1 := Nat.le_trans ij (by simp_arith)
       have : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      partition' (dbgTraceIfShared "arr4" arr) i (j + 1) last (by assumption) (by assumption) la
+      partition' arr i (j + 1) last (by assumption) (by assumption) la
   else
-    let arr := (dbgTraceIfShared "arr5" arr).swap ⟨i, by assumption⟩ ⟨last, by assumption⟩
+    let arr := (dbgTraceIfShared "swap2" arr).swap ⟨i, by assumption⟩ ⟨last, by assumption⟩
     (i, arr)
 termination_by partition' _ _ j last ij jl la => last - j
 
@@ -131,13 +131,13 @@ def quickSort' [Ord α] [Inhabited α] (arr : Array α) (first last : Nat) (_ : 
     have : first ≤ last := by
       apply Nat.le_of_lt
       assumption
-    let (⟨mid, ⟨first_mid, mid_last⟩⟩, arr) := partition (dbgTraceIfShared "arr6" arr) first last this (by assumption)
+    let (⟨mid, ⟨first_mid, mid_last⟩⟩, arr) := partition arr first last this (by assumption)
     have ⟨_, _⟩ := quickSort'_termination lt first_mid mid_last
     have : mid - 1 < arr.size := by
       -- mid - 1 ≤ mid ≤ last < arr.size
       sorry
-    let arr := quickSort' (dbgTraceIfShared "arr7" arr) first (mid - 1) (by simp[dbgTraceIfShared, *])
-    quickSort' (dbgTraceIfShared "arr8" arr) (mid + 1) last (by sorry)
+    let arr := quickSort' arr first (mid - 1) (by simp[dbgTraceIfShared, *])
+    quickSort' arr (mid + 1) last (by sorry)
   else
     arr
 termination_by quickSort' _ _ first last _ => last - first
