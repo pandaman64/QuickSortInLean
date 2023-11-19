@@ -1,103 +1,58 @@
-def partition' [Ord α]
-  (arr : Array α) (i j last : Nat) (ij : i ≤ j) (jl : j ≤ last) (la : last < arr.size): (Nat × Array α) :=
-  have : i < arr.size := by
-    apply Nat.lt_of_le_of_lt _ la
-    apply Nat.le_trans ij jl
-  if jl : j < last then
-    have : j < arr.size := Nat.lt_trans jl la
-    match compare arr[j] arr[last] with
-    | .lt | .eq =>
-      have : i + 1 ≤ j + 1 := Nat.add_le_add_right ij 1
-      have : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      let arr := (dbgTraceIfShared "swap1" arr).swap ⟨i, by assumption⟩ ⟨j, by assumption⟩
-      partition' arr (i + 1) (j + 1) last
-        (by assumption) (by assumption) (by simp [dbgTraceIfShared, la])
-    | .gt =>
-      have : i ≤ j + 1 := Nat.le_trans ij (by simp_arith)
-      have : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      partition' arr i (j + 1) last (by assumption) (by assumption) la
+import Std.Data.Fin.Basic
+
+/--
+When proving termination and the safety of array operation, it's crucial to show
+that each operation preserves the size of the array. Therefore, we encode the
+size into the type using the Vec type.
+-/
+abbrev Vec (α : Type) (n : Nat) := { arr : Array α // arr.size = n }
+
+def Vec.swap (self : Vec α n) (i j : Fin n) : Vec α n :=
+  ⟨self.val.swap (i.cast self.property.symm) (j.cast self.property.symm), by simp [self.property]⟩
+
+def Vec.getElem (self : Vec α n) (i : Nat) (isLt : i < n) : α :=
+  self.val.get ⟨i, by simp [self.property, isLt]⟩
+
+instance : GetElem (Vec α n) (Fin n) α (fun _ _ => True) where
+  getElem v i _ := v.getElem i.val i.isLt
+
+instance {α : Type} {n : Nat} : GetElem (Vec α n) Nat α (fun _ i => i < n) where
+  getElem := Vec.getElem
+
+theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := by
+  induction h with
+  | refl => show m ≤ m; simp
+  | step _ ih =>
+    apply Nat.le_trans ih
+    apply Nat.sub_le_succ_sub
+
+def partitionImpl {α : Type} [Ord α]
+  {n : Nat} (arr : Vec α n) (first i j : Nat)
+  (fi : first ≤ i) (ij : i ≤ j) (jn : j < n) :
+  { mid : Nat // first ≤ mid ∧ mid ≤ j } × Vec α n :=
+  have : i < n := Nat.lt_of_le_of_lt ij jn
+  have : first < n := Nat.lt_of_le_of_lt fi this
+  if fi : first < i then
+    have : first ≤ i - 1 := Nat.le_sub_of_lt fi
+    match compare arr[i] arr[first] with
+    | .lt =>
+      have : i - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
+      partitionImpl arr first (i - 1) j (by assumption) (by assumption) jn
+    | .eq | .gt =>
+      have : i - 1 ≤ j - 1 := Nat.sub_le_sub_right ij 1
+      have : j - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) jn
+      let arr := (dbgTraceIfShared "swap1" arr).swap ⟨i, by assumption⟩ ⟨j, jn⟩
+      match partitionImpl arr first (i - 1) (j - 1) (by assumption) (by assumption) (by assumption) with
+      | (⟨mid, ⟨hmid₁, hmid₂⟩⟩, arr) => (⟨mid, ⟨hmid₁, Nat.le_trans hmid₂ (Nat.sub_le ..)⟩⟩, arr)
   else
-    let arr := (dbgTraceIfShared "swap2" arr).swap ⟨i, by assumption⟩ ⟨last, by assumption⟩
-    (i, arr)
-termination_by partition' _ _ j last ij jl la => last - j
+    let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨i, by assumption⟩
+    (⟨i, And.intro (by assumption) (by assumption)⟩, arr)
 
-theorem partition'_size {α : Type} {result : (Nat × Array α)} [Ord α]
-   (arr : Array α) (i j last : Nat) (ij : i ≤ j) (jl : j ≤ last) (la : last < arr.size) :
-   partition' arr i j last ij jl la = result →
-   result.2.size = arr.size := by
-   unfold partition'
-   split <;> simp [dbgTraceIfShared]
-   case inl jl =>
-    split
-    -- | .lt | .eq
-    case h_1 | h_2 =>
-      intro eq
-      have ij : i + 1 ≤ j + 1 := Nat.add_le_add_right ij 1
-      have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      let ih := partition'_size _ (i + 1) (j + 1) last ij jl (by simp[dbgTraceIfShared, la]) eq
-      simp at ih
-      assumption
-    -- | .gt
-    case h_3 =>
-      intro eq
-      have ij : i ≤ j + 1 := Nat.le_trans ij (by simp_arith)
-      have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      exact partition'_size _ i (j + 1) last ij jl la eq
-   case inr _ =>
-    intro eq
-    rw [←eq]
-    simp
-termination_by partition'_size α result ord arr i j last ij jl la => last - j
-
-theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α]
-  (arr : Array α) (i j last : Nat) (ij : i ≤ j) (jl : j ≤ last) (la : last < arr.size) :
-  partition' arr i j last ij jl la = result →
-  i ≤ result.1 ∧ result.1 ≤ last := by
-  unfold partition'
-  split <;> simp
-  case inl jl =>
-    split
-    -- | .lt | .eq
-    case h_1 | h_2 =>
-      intro eq
-      have ij : i + 1 ≤ j + 1 := Nat.add_le_add_right ij 1
-      have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      let ⟨i_result, result_last⟩ := partition'_mid _ (i + 1) (j + 1) last ij jl (by simp[dbgTraceIfShared, la]) eq
-      have : i ≤ result.1 := by
-        apply Nat.le_trans (by simp_arith) i_result
-      exact ⟨by assumption, by assumption⟩
-    -- | .gt
-    case h_3 =>
-      intro eq
-      have ij : i ≤ j + 1 := Nat.le_trans ij (by simp_arith)
-      have jl : j + 1 ≤ last := Nat.succ_le_of_lt jl
-      exact partition'_mid _ i (j + 1) last ij jl la eq
-  case inr njl =>
-    intro eq
-    have : result.1 = i := by
-      rw [←eq]
-    simp [this]
-    exact Nat.le_trans ij jl
-termination_by partition'_mid α result ord arr i j last ij jl la => last - j
-
-def partition [Ord α]
-  (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) : (Nat × Array α) :=
-  have ij : first ≤ first := by simp
-  partition' arr first first last ij jl la
-
-theorem partition_mid {α : Type} {result : (Nat × Array α)} [Ord α]
-  (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
-  partition arr first last jl la = result →
-  first ≤ result.1 ∧ result.1 ≤ last := by
-  intro eq
-  exact partition'_mid (result := result) arr first first last (by simp) jl la eq
-
-theorem partition_size {α : Type} {result : (Nat × Array α)} [Ord α]
-  (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
-  partition arr first last jl la = result →
-  result.2.size = arr.size := by
-  intro eq
-  exact partition'_size arr first first last (by simp) jl la eq
+def partition {α : Type} [Ord α]
+  {n : Nat} (arr : Vec α n) (first last : Nat)
+  (fl : first ≤ last) (ln : last < n) :
+  { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n :=
+  partitionImpl arr first last last fl (by simp) ln
 
 theorem Nat.le_or_gt : {m n : Nat} → m ≤ n ∨ m > n
   | m, n =>
