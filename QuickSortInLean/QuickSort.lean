@@ -1,26 +1,4 @@
-import Std.Data.Fin.Basic
-
-/--
-When proving termination and the safety of array operation, it's crucial to show
-that each operation preserves the size of the array. Therefore, we encode the
-size into the type using the Vec type.
--/
-abbrev Vec (α : Type) (n : Nat) := { arr : Array α // arr.size = n }
-
-instance : CoeDep (Array α) arr (Vec α arr.size) where
-  coe := ⟨arr, by rfl⟩
-
-def Vec.swap (self : Vec α n) (i j : Fin n) : Vec α n :=
-  ⟨self.val.swap (i.cast self.property.symm) (j.cast self.property.symm), by simp [self.property]⟩
-
-def Vec.getElem (self : Vec α n) (i : Nat) (isLt : i < n) : α :=
-  self.val.get ⟨i, by simp [self.property, isLt]⟩
-
-instance : GetElem (Vec α n) (Fin n) α (fun _ _ => True) where
-  getElem v i _ := v.getElem i.val i.isLt
-
-instance {α : Type} {n : Nat} : GetElem (Vec α n) Nat α (fun _ i => i < n) where
-  getElem := Vec.getElem
+import QuickSortInLean.Vec
 
 theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := by
   induction h with
