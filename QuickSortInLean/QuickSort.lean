@@ -81,19 +81,23 @@ theorem partition'_mid {α : Type} {result : (Nat × Array α)} [Ord α]
 termination_by partition'_mid α result ord arr i j last ij jl la => last - j
 
 def partition [Ord α]
-  (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
-  ({ mid : Nat // first ≤ mid ∧ mid ≤ last } × Array α) :=
+  (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) : (Nat × Array α) :=
   have ij : first ≤ first := by simp
-  let result := partition' arr first first last ij jl la
-  let property := partition'_mid arr first first last ij jl la (by rfl)
-  (⟨result.1, property⟩, result.2)
+  partition' arr first first last ij jl la
 
-theorem partition_size [Ord α]
+theorem partition_mid {α : Type} {result : (Nat × Array α)} [Ord α]
   (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
-  (partition arr first last jl la).2.size = arr.size := by
-  unfold partition
-  simp
-  exact partition'_size arr first first last (by simp) jl la (by rfl)
+  partition arr first last jl la = result →
+  first ≤ result.1 ∧ result.1 ≤ last := by
+  intro eq
+  exact partition'_mid (result := result) arr first first last (by simp) jl la eq
+
+theorem partition_size {α : Type} {result : (Nat × Array α)} [Ord α]
+  (arr : Array α) (first last : Nat) (jl : first ≤ last) (la : last < arr.size) :
+  partition arr first last jl la = result →
+  result.2.size = arr.size := by
+  intro eq
+  exact partition'_size arr first first last (by simp) jl la eq
 
 theorem Nat.le_or_gt : {m n : Nat} → m ≤ n ∨ m > n
   | m, n =>
@@ -150,13 +154,15 @@ def quickSort' [Ord α] (arr : Array α) (first last : Nat) (la : last < arr.siz
       assumption
     -- Need to use match to put the equality in the context
     match hp : partition arr first last fl la with
-    | (⟨mid, ⟨first_mid, mid_last⟩⟩, arr) =>
+    | (mid, arr) =>
+      have ⟨first_mid, mid_last⟩ := partition_mid _ first last fl la hp
       have ⟨_, _⟩ := quickSort'_termination lt first_mid mid_last
       have eq1 : size = arr.size := by
         have : arr.size = (partition _ first last fl la).snd.size := by simp[hp]
         rw [this]
         have : (partition _ first last fl la).snd.size = size := by
           apply partition_size
+          rfl
         simp [this]
       have : mid - 1 < arr.size := by
         -- mid - 1 ≤ mid ≤ last < size
