@@ -7,6 +7,9 @@ size into the type using the Vec type.
 -/
 abbrev Vec (α : Type) (n : Nat) := { arr : Array α // arr.size = n }
 
+instance : CoeDep (Array α) arr (Vec α arr.size) where
+  coe := ⟨arr, by rfl⟩
+
 def Vec.swap (self : Vec α n) (i j : Fin n) : Vec α n :=
   ⟨self.val.swap (i.cast self.property.symm) (j.cast self.property.symm), by simp [self.property]⟩
 
@@ -45,8 +48,8 @@ def partitionImpl {α : Type} [Ord α]
       match partitionImpl arr first (i - 1) (j - 1) (by assumption) (by assumption) (by assumption) with
       | (⟨mid, ⟨hmid₁, hmid₂⟩⟩, arr) => (⟨mid, ⟨hmid₁, Nat.le_trans hmid₂ (Nat.sub_le ..)⟩⟩, arr)
   else
-    let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨i, by assumption⟩
-    (⟨i, And.intro (by assumption) (by assumption)⟩, arr)
+    let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨j, by assumption⟩
+    (⟨j, And.intro (Nat.le_trans (by assumption) ij) (by simp)⟩, arr)
 
 def partition {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat)
@@ -54,91 +57,57 @@ def partition {α : Type} [Ord α]
   { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n :=
   partitionImpl arr first last last fl (by simp) ln
 
-theorem Nat.le_or_gt : {m n : Nat} → m ≤ n ∨ m > n
-  | m, n =>
-    match Nat.decLe m n with
-    | isTrue h => Or.inl h
-    | isFalse h => Or.inr (Nat.gt_of_not_le h)
+theorem Nat.sub_add_eq_add_sub {m n k : Nat} (km : k ≤ m) : m - k + n = m + n - k := by
+  induction km with
+  | refl => simp [Nat.add_sub_cancel_left]
+  | @step m km ih =>
+    have : k ≤ m + n := Nat.le_trans km (Nat.le_add_right ..)
+    simp [Nat.succ_sub km, Nat.succ_add, ih, Nat.succ_sub this]
 
-theorem quickSort'_termination {first mid last : Nat} :
-  first < last →
-  first ≤ mid →
-  mid ≤ last →
-  mid - 1 - first < last - first ∧ last - (mid + 1) < last - first := by
-  intro lt first_mid mid_last
+theorem Nat.lt_sub_right {m n k : Nat} (mk : k ≤ m) (mn : m < n) : m - k < n - k := by
+  show m - k + 1 ≤ n - k
+  have : m - k + 1 = m + 1 - k := Nat.sub_add_eq_add_sub mk
+  rw [this]
+  apply Nat.sub_le_sub_right mn
 
-  -- LHS
-  have : mid - (1 + first) < last - first := by
-    have : mid ≤ 1 + first ∨ mid > 1 + first := Nat.le_or_gt
-    cases this with
-    | inl le =>
-      have : mid - (1 + first) = 0 := by
-        exact Nat.sub_eq_zero_of_le le
-      simp [this, Nat.zero_lt_sub_of_lt, lt]
-    | inr gt =>
-      have : mid - (1 + first) + (1 + first) = mid := by
-        apply Nat.sub_add_cancel
-        exact Nat.le_of_lt gt
-      have : mid - (1 + first) + (1 + first) ≤ last := by
-        rw [this]
-        exact mid_last
-      have : mid - (1 + first) + first + 1 ≤ last := by
-        rw [Nat.add_assoc]
-        rw [Nat.add_comm first 1]
-        exact this
-      have : mid - (1 + first) + first < last := by
-        simp_arith [this]
-      exact Nat.lt_sub_of_add_lt this
-  have : mid - 1 - first < last - first := by
-    rw [Nat.sub_sub]
-    exact this
-
-  -- RHS
-  have : last - (mid + 1) < last - first := by
-    apply Nat.sub_lt_sub_left
-    . assumption
-    . simp_arith [first_mid]
-  exact And.intro (by assumption) (by assumption)
-
-def quickSort' [Ord α] (arr : Array α) (first last : Nat) (la : last < arr.size) :
-  ({ arr' : Array α  // arr'.size = arr.size }) :=
-  let size := arr.size
+def quickSortImpl {α : Type} [Ord α]
+  {n : Nat} (arr : Vec α n) (first last : Nat) (ln : last < n) :
+  Vec α n :=
   if lt : first < last then
-    have fl : first ≤ last := by
-      apply Nat.le_of_lt
-      assumption
-    -- Need to use match to put the equality in the context
-    match hp : partition arr first last fl la with
-    | (mid, arr) =>
-      have ⟨first_mid, mid_last⟩ := partition_mid _ first last fl la hp
-      have ⟨_, _⟩ := quickSort'_termination lt first_mid mid_last
-      have eq1 : size = arr.size := by
-        have : arr.size = (partition _ first last fl la).snd.size := by simp[hp]
-        rw [this]
-        have : (partition _ first last fl la).snd.size = size := by
-          apply partition_size
-          rfl
-        simp [this]
-      have : mid - 1 < arr.size := by
-        -- mid - 1 ≤ mid ≤ last < size
-        have : mid - 1 ≤ last := Nat.le_trans (Nat.sub_le mid 1) mid_last
-        have : mid - 1 < size := Nat.lt_of_le_of_lt this (by assumption)
-        rw [←eq1]
-        exact this
-      let ⟨arr, eq2⟩ := quickSort' arr first (mid - 1) this
-      have eq3 : arr.size = size := by rw [eq2, eq1]
-      have : last < arr.size := by rw [eq3]; assumption
-      let ⟨arr, eq4⟩ := quickSort' arr (mid + 1) last this
-      ⟨arr, Eq.trans eq4 eq3⟩
-  else
-    ⟨arr, by rfl⟩
-termination_by quickSort' _ _ first last _ => last - first
+    match partition arr first last (Nat.le_of_lt lt) ln with
+    | (⟨mid, ⟨hmid₁, hmid₂⟩⟩, arr) =>
+      -- Lemmas
+      have : mid - 1 - first < last - first := termination_lemma lt hmid₁ hmid₂
+      have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hmid₁ (Nat.lt_succ_self ..))
+      have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hmid₂ ln)
 
-def quickSort [Ord α] (arr : Array α) : Array α :=
-  if _ : arr.size > 0 then
-    quickSort' arr 0 (arr.size - 1) (Nat.sub_lt (by assumption) (by decide))
+      -- Recursion
+      let arr := quickSortImpl arr first (mid - 1) (by assumption)
+      quickSortImpl arr (mid + 1) last ln
   else
     arr
+where
+  termination_lemma {mid : Nat} (lt : first < last) (hmid₁ : first ≤ mid) (hmid₂ : mid ≤ last) : mid - 1 - first < last - first := by
+    cases Nat.decLt first mid with
+    | isFalse h =>
+      rw [Nat.not_lt] at h
+      have : (1 + first) = (1 + mid) := congrArg (1 + ·) (Nat.le_antisymm hmid₁ h)
+      rw [Nat.sub_sub, this, Nat.add_comm, Nat.sub_self_add]
+      exact Nat.zero_lt_sub_of_lt lt
+    | isTrue h =>
+      have : first ≤ mid - 1 := Nat.le_sub_of_lt h
+      have : mid - 1 < mid := Nat.pred_lt' h
+      exact Nat.lt_sub_right (by assumption) (Nat.lt_of_lt_of_le (by assumption) hmid₂)
+termination_by _ => last - first
+
+def quickSort' {α : Type} [Ord α] {n : Nat} (arr : Vec α n) : Vec α n :=
+  if _ : n > 0 then
+    quickSortImpl arr 0 (n - 1) (Nat.sub_lt (by assumption) (by decide))
+  else
+    arr
+
+def quickSort {α : Type} [Ord α] (arr : Array α) : Array α :=
+  (quickSort' (n := arr.size) arr).val
 
 -- #eval quickSort #[7, 5, 6, 2, 8, 1, 9, 4, 10, 3]
 -- #eval quickSort #[3, 4, 5, 2, 1, 5, 3, 2, 1, 4]
