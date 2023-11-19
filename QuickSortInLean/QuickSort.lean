@@ -162,12 +162,13 @@ def quickSort' [Ord α] (arr : Array α) (first last : Nat) (la : last < arr.siz
         -- mid - 1 ≤ mid ≤ last < size
         have : mid - 1 ≤ last := Nat.le_trans (Nat.sub_le mid 1) mid_last
         have : mid - 1 < size := Nat.lt_of_le_of_lt this (by assumption)
-        exact eq1 ▸ this
-      match hq : quickSort' arr first (mid - 1) this with
-      | ⟨arr, eq2⟩ =>
-        have eq3 : arr.size = size := by rw [eq2, eq1]
-        have : last < arr.size := by rw [eq3]; assumption
-        (eq3 ▸ quickSort' arr (mid + 1) last (by assumption) : { arr' : Array α // arr'.size = size })
+        rw [←eq1]
+        exact this
+      let ⟨arr, eq2⟩ := quickSort' arr first (mid - 1) this
+      have eq3 : arr.size = size := by rw [eq2, eq1]
+      have : last < arr.size := by rw [eq3]; assumption
+      let ⟨arr, eq4⟩ := quickSort' arr (mid + 1) last this
+      ⟨arr, Eq.trans eq4 eq3⟩
   else
     ⟨arr, by rfl⟩
 termination_by quickSort' _ _ first last _ => last - first
