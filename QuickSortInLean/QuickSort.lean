@@ -24,7 +24,7 @@ def partitionImpl {α : Type} [Ord α]
       have : j - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) jn
       let arr := (dbgTraceIfShared "swap1" arr).swap ⟨i, by assumption⟩ ⟨j, jn⟩
       match partitionImpl arr first (i - 1) (j - 1) (by assumption) (by assumption) (by assumption) with
-      | (⟨mid, ⟨hmid₁, hmid₂⟩⟩, arr) => (⟨mid, ⟨hmid₁, Nat.le_trans hmid₂ (Nat.sub_le ..)⟩⟩, arr)
+      | (⟨mid, hm⟩, arr) => (⟨mid, ⟨hm.1, Nat.le_trans hm.2 (Nat.sub_le ..)⟩⟩, arr)
   else
     let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨j, by assumption⟩
     (⟨j, And.intro (Nat.le_trans (by assumption) ij) (by simp)⟩, arr)

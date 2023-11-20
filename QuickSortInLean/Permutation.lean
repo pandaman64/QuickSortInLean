@@ -19,6 +19,14 @@ inductive permuted {α : Type} (n : Nat) : Vec α n → Vec α n → Type where
   | refl : permuted n arr arr
   | step {arr arr'} (i j : Fin n) : permuted n (arr.swap i j) arr' → permuted n arr arr'
 
+theorem permuted.trans : permuted n arr arr' → permuted n arr' arr'' → permuted n arr arr'' := by
+  intro h
+  induction h with
+  | refl => intro; assumption
+  | step i j _ ih =>
+    intro h'
+    exact permuted.step i j (ih h')
+
 def permuted.to_map (p : permuted n arr arr') : Fin n → Fin n :=
   match p with
   | .refl => id
