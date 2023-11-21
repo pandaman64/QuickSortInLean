@@ -52,16 +52,19 @@ def quickSortImpl {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat) (ln : last < n) :
   Vec α n :=
   if lt : first < last then
-    match partition arr first last (Nat.le_of_lt lt) ln with
-    | (⟨mid, ⟨hmid₁, hmid₂⟩⟩, arr) =>
-      -- Lemmas
-      have : mid - 1 - first < last - first := termination_lemma lt hmid₁ hmid₂
-      have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hmid₁ (Nat.lt_succ_self ..))
-      have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hmid₂ ln)
+    let parted := partition arr first last (Nat.le_of_lt lt) ln
+    let mid := parted.1.val
+    let hm := parted.1.property
+    let arr := parted.2
 
-      -- Recursion
-      let arr := quickSortImpl arr first (mid - 1) (by assumption)
-      quickSortImpl arr (mid + 1) last ln
+    -- Lemmas
+    have : mid - 1 - first < last - first := termination_lemma lt hm.1 hm.2
+    have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hm.1 (Nat.lt_succ_self ..))
+    have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 ln)
+
+    -- Recursion
+    let arr := quickSortImpl arr first (mid - 1) (by assumption)
+    quickSortImpl arr (mid + 1) last ln
   else
     arr
 where

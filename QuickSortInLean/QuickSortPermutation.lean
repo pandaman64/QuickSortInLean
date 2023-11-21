@@ -44,10 +44,24 @@ theorem quickSortImpl_permuted {α : Type} [Ord α]
   unfold quickSortImpl
   match Nat.decLt first last with
   | isTrue h =>
-    have : first ≤ last := Nat.le_of_lt h
-
     simp [h]
-    sorry -- RAGE QUIT
+
+    have : first ≤ last := Nat.le_of_lt h
+    let parted := partition arr first last (by assumption) ln
+    let mid := parted.1.val
+    let hm := parted.1.property
+    have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 ln)
+    have : mid - 1 - first < last - first := quickSortImpl.termination_lemma first last h hm.1 hm.2
+    have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left h (Nat.lt_of_le_of_lt hm.1 (Nat.lt_succ_self ..))
+
+    show permuted n arr (quickSortImpl (quickSortImpl parted.2 first (mid - 1) (by assumption)) (mid + 1) last ln)
+
+    let partedPermuted : permuted n arr parted.2 := partition_permuted arr first last (by assumption) ln
+    let quickSortImplPermuted₁ := quickSortImpl_permuted parted.2 first (mid - 1) (by assumption)
+    let quickSortImplPermuted₂ := quickSortImpl_permuted
+      (quickSortImpl parted.snd first (mid - 1) (by assumption)) (mid + 1) last (by assumption)
+
+    exact permuted.trans (permuted.trans partedPermuted quickSortImplPermuted₁) quickSortImplPermuted₂
   | isFalse h =>
     simp [h]
     exact .refl
