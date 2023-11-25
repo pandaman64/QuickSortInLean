@@ -2,7 +2,7 @@ import QuickSortInLean.Permutation
 import QuickSortInLean.QuickSort
 import QuickSortInLean.Induction
 
-theorem partitionImpl_permuted {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem partitionImpl_permuted {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first i j : Nat)
   (fi : first ≤ i) (ij : i ≤ j) (jn : j < n) :
   permuted n arr (partitionImpl arr first i j fi ij jn).2 := by
@@ -17,13 +17,13 @@ theorem partitionImpl_permuted {α : Type} [inst : LT α] [DecidableRel inst.lt]
     simp [*]
     apply permuted.step ⟨i, by assumption⟩ ⟨j, jn⟩ ih
 
-theorem partition_permuted {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem partition_permuted {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat)
   (fl : first ≤ last) (ln : last < n) :
   permuted n arr (partition arr first last fl ln).2 := by
   apply partitionImpl_permuted
 
-theorem quickSortImpl_permuted {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem quickSortImpl_permuted {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat) (ln : last < n) :
   permuted n arr (quickSortImpl arr first last ln) := by
   induction arr, first, last, ln using quickSortImpl.induct with
@@ -36,7 +36,7 @@ theorem quickSortImpl_permuted {α : Type} [inst : LT α] [DecidableRel inst.lt]
     rw [eq] at p
     exact permuted.trans (permuted.trans p ih₁) ih₂
 
-theorem quickSort'_permuted  {α : Type} [inst : LT α] [DecidableRel inst.lt] {n : Nat} (arr : Vec α n) :
+theorem quickSort'_permuted  {α : Type} [Ord α] {n : Nat} (arr : Vec α n) :
   permuted n arr (quickSort' arr) := by
   simp [quickSort']
   match Nat.decLt 0 n with
@@ -47,7 +47,7 @@ theorem quickSort'_permuted  {α : Type} [inst : LT α] [DecidableRel inst.lt] {
     simp [h]
     exact .refl
 
-theorem quickSort'_map_index_invertible  {α : Type} [inst : LT α] [DecidableRel inst.lt] {n : Nat} (arr : Vec α n):
+theorem quickSort'_map_index_invertible  {α : Type} [Ord α] {n : Nat} (arr : Vec α n):
   ∃f : Fin n → Fin n,
     invertible f ∧ (∀i : Fin n, arr[i] = (quickSort' arr)[f i]) := by
   let p := quickSort'_permuted arr

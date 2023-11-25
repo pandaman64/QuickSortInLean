@@ -1,5 +1,8 @@
 import QuickSortInLean.Vec
 
+-- Workaround for Ord not inheriting from LT
+infix:50 " ≪ " => ltOfOrd.lt
+
 theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := by
   induction h with
   | refl => show m ≤ m; simp
@@ -7,7 +10,7 @@ theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := by
     apply Nat.le_trans ih
     apply Nat.sub_le_succ_sub
 
-def partitionImpl {α : Type} [inst : LT α] [DecidableRel inst.lt]
+def partitionImpl {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first i j : Nat)
   (fi : first ≤ i) (ij : i ≤ j) (jn : j < n) :
   { mid : Nat // first ≤ mid ∧ mid ≤ j } × Vec α n :=
@@ -15,7 +18,7 @@ def partitionImpl {α : Type} [inst : LT α] [DecidableRel inst.lt]
   have : first < n := Nat.lt_of_le_of_lt fi this
   if fi : first < i then
     have : first ≤ i - 1 := Nat.le_sub_of_lt fi
-    if arr[i] < arr[first] then
+    if arr[i] ≪ arr[first] then
       have : i - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
       partitionImpl arr first (i - 1) j (by assumption) (by assumption) jn
     else
@@ -28,7 +31,7 @@ def partitionImpl {α : Type} [inst : LT α] [DecidableRel inst.lt]
     let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨j, by assumption⟩
     (⟨j, ⟨Nat.le_trans (by assumption) ij, by simp⟩⟩, arr)
 
-def partition {α : Type} [inst : LT α] [DecidableRel inst.lt]
+def partition {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat)
   (fl : first ≤ last) (ln : last < n) :
   { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n :=
@@ -47,7 +50,7 @@ theorem Nat.lt_sub_right {m n k : Nat} (mk : k ≤ m) (mn : m < n) : m - k < n -
   rw [this]
   apply Nat.sub_le_sub_right mn
 
-def quickSortImpl {α : Type} [inst : LT α] [DecidableRel inst.lt]
+def quickSortImpl {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat) (ln : last < n) :
   Vec α n :=
   if lt : first < last then
@@ -80,13 +83,13 @@ where
       exact Nat.lt_sub_right (by assumption) (Nat.lt_of_lt_of_le (by assumption) hmid₂)
 termination_by _ => last - first
 
-def quickSort' {α : Type} [inst : LT α] [DecidableRel inst.lt] {n : Nat} (arr : Vec α n) : Vec α n :=
+def quickSort' {α : Type} [Ord α] {n : Nat} (arr : Vec α n) : Vec α n :=
   if _ : n > 0 then
     quickSortImpl arr 0 (n - 1) (Nat.sub_lt (by assumption) (by decide))
   else
     arr
 
-def quickSort {α : Type} [inst : LT α] [DecidableRel inst.lt] (arr : Array α) : Array α :=
+def quickSort {α : Type} [Ord α] (arr : Array α) : Array α :=
   (quickSort' (n := arr.size) arr).val
 
 -- #eval quickSort #[7, 5, 6, 2, 8, 1, 9, 4, 10, 3]

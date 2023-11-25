@@ -1,16 +1,16 @@
 import QuickSortInLean.QuickSort
 
-theorem partitionImpl.induct {α : Type} [inst : LT α] [DecidableRel inst.lt] {n : Nat}
+theorem partitionImpl.induct {α : Type} [Ord α] {n : Nat}
   (motive : (arr : Vec α n) → (first i j : Nat) → (fi : first ≤ i) → (ij : i ≤ j) → (jn : j < n) → Sort u)
   (arr : Vec α n) (first i j : Nat)
   (fi : first ≤ i) (ij : i ≤ j) (jn : j < n)
   (base : ∀arr first i j fi ij jn (_ : i < n) (_ : first < n) (_ : ¬first < i), motive arr first i j fi ij jn)
   (step_lt : ∀arr first i j fi ij jn
-    (_ : i < n) (_ : first < n) (_ : first < i) (_ : first ≤ i - 1) (_ : arr[i] < arr[first]) (_ : i - 1 ≤ j)
+    (_ : i < n) (_ : first < n) (_ : first < i) (_ : first ≤ i - 1) (_ : arr[i] ≪ arr[first]) (_ : i - 1 ≤ j)
     (ih : motive arr first (i - 1) j (by assumption) (by assumption) jn),
     motive arr first i j fi ij jn)
   (step_ge : ∀arr first i j fi ij jn
-    (_ : i < n) (_ : first < n) (_ : first < i) (_ : first ≤ i - 1) (_ : ¬arr[i] < arr[first]) (_ : i - 1 ≤ j - 1) (_ : j - 1 < n)
+    (_ : i < n) (_ : first < n) (_ : first < i) (_ : first ≤ i - 1) (_ : ¬arr[i] ≪ arr[first]) (_ : i - 1 ≤ j - 1) (_ : j - 1 < n)
     (ih : motive (arr.swap ⟨i, by assumption⟩ ⟨j, jn⟩) first (i - 1) (j - 1) (by assumption) (by assumption) (by assumption)),
     motive arr first i j fi ij jn)
   : motive arr first i j fi ij jn := by
@@ -18,7 +18,7 @@ theorem partitionImpl.induct {α : Type} [inst : LT α] [DecidableRel inst.lt] {
   have : first < n := Nat.lt_of_le_of_lt fi this
   if h : first < i then
     have : first ≤ i - 1 := Nat.le_sub_of_lt h
-    if _ : arr[i] < arr[first] then
+    if _ : arr[i] ≪ arr[first] then
       have : i - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
       apply step_lt arr first i j fi ij jn
         (by assumption) (by assumption) h (by assumption) (by assumption)
@@ -40,7 +40,7 @@ theorem partitionImpl.induct {α : Type} [inst : LT α] [DecidableRel inst.lt] {
     apply base arr first i j fi ij jn (by assumption) (by assumption) h
 
 @[simp]
-theorem partitionImpl.simp_base {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem partitionImpl.simp_base {α : Type} [Ord α]
   {n : Nat} {arr : Vec α n} {first i j : Nat}
   {fi : first ≤ i} {ij : i ≤ j} {jn : j < n}
   (h : ¬first < i) :
@@ -50,18 +50,18 @@ theorem partitionImpl.simp_base {α : Type} [inst : LT α] [DecidableRel inst.lt
   simp [*, dbgTraceIfShared]
 
 @[simp]
-theorem partitionImpl.simp_step_lt {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem partitionImpl.simp_step_lt {α : Type} [Ord α]
   {n : Nat} {arr : Vec α n} {first i j : Nat}
   {fi : first ≤ i} {ij : i ≤ j} {jn : j < n}
-  (h : first < i) (_ : arr[i]'(Nat.lt_of_le_of_lt ij jn) < arr[first]'(Nat.lt_of_le_of_lt fi (Nat.lt_of_le_of_lt ij jn))) :
+  (h : first < i) (_ : ltOfOrd.lt (arr[i]'(Nat.lt_of_le_of_lt ij jn)) (arr[first]'(Nat.lt_of_le_of_lt fi (Nat.lt_of_le_of_lt ij jn)))) :
   partitionImpl arr first i j fi ij jn = partitionImpl arr first (i - 1) j (Nat.le_sub_of_lt h) (Nat.le_trans (Nat.sub_le ..) ij) jn := by
   rw [partitionImpl]
   simp [*]
 
 @[simp]
-theorem partitionImpl.simp_step_ge {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem partitionImpl.simp_step_ge {α : Type} [Ord α]
   {n : Nat} {arr : Vec α n} {first i j : Nat}
-  {fi : first ≤ i} {ij : i ≤ j} {jn : j < n}(h : first < i) (_ : ¬arr[i]'(Nat.lt_of_le_of_lt ij jn) < arr[first]'(Nat.lt_of_le_of_lt fi (Nat.lt_of_le_of_lt ij jn))) :
+  {fi : first ≤ i} {ij : i ≤ j} {jn : j < n}(h : first < i) (_ : ¬arr[i]'(Nat.lt_of_le_of_lt ij jn) ≪ arr[first]'(Nat.lt_of_le_of_lt fi (Nat.lt_of_le_of_lt ij jn))) :
   partitionImpl arr first i j fi ij jn =
   match partitionImpl (arr.swap ⟨i, Nat.lt_of_le_of_lt ij jn⟩ ⟨j, jn⟩) first (i - 1) (j - 1)
     (Nat.le_sub_of_lt h) (Nat.sub_le_sub_right ij 1) (Nat.lt_of_le_of_lt (Nat.sub_le ..) jn) with
@@ -69,7 +69,7 @@ theorem partitionImpl.simp_step_ge {α : Type} [inst : LT α] [DecidableRel inst
   rw [partitionImpl]
   simp [*, dbgTraceIfShared]
 
-theorem quickSortImpl.induct {α : Type} [inst : LT α] [DecidableRel inst.lt] {n : Nat}
+theorem quickSortImpl.induct {α : Type} [Ord α] {n : Nat}
   (motive : (arr : Vec α n) → (first last : Nat) → (ln : last < n) → Sort u)
   (arr : Vec α n) (first last : Nat) (ln : last < n)
   (base : ∀arr first last ln (_ : ¬first < last), motive arr first last ln)
@@ -104,7 +104,7 @@ theorem quickSortImpl.induct {α : Type} [inst : LT α] [DecidableRel inst.lt] {
 termination_by _ => last - first
 
 @[simp]
-theorem quickSortImpl.simp_base {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem quickSortImpl.simp_base {α : Type} [Ord α]
   {n : Nat} {arr : Vec α n} {first last : Nat} {ln : last < n}
   (h : ¬first < last) :
   quickSortImpl arr first last ln = arr := by
@@ -112,7 +112,7 @@ theorem quickSortImpl.simp_base {α : Type} [inst : LT α] [DecidableRel inst.lt
   simp [*]
 
 @[simp]
-theorem quickSortImpl.simp_step {α : Type} [inst : LT α] [DecidableRel inst.lt]
+theorem quickSortImpl.simp_step {α : Type} [Ord α]
   {n : Nat} {arr : Vec α n} {first last : Nat} {ln : last < n}
   (lt : first < last) :
   let parted := partition arr first last (Nat.le_of_lt lt) ln
