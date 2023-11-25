@@ -148,3 +148,106 @@ theorem partitionImpl.loop_invariant {α : Type} [Ord α] {n : Nat}
           apply inv.1 (j - 1) ij (by assumption)
 
     exact ih (by assumption) inv result (by rfl)
+
+theorem partitionImpl.first_eq {α : Type} [Ord α] {n : Nat}
+  (arr : Vec α n) (first i j : Nat)
+  (fi : first ≤ i) (ij : i ≤ j) (jn : j < n) (fn : first < n := Nat.lt_of_le_of_lt (Nat.le_trans fi ij) jn):
+  (partitionImpl arr first i j fi ij jn).2[first] = arr[first] := by
+  induction arr, first, i, j, fi, ij, jn using partitionImpl.induct with
+  | base => simp [*]
+  | step_lt => simp [*]
+  | step_ge arr first i j _ ij _ _ _ fi =>
+    simp [*]
+    have fj : first < j := Nat.lt_of_lt_of_le fi ij
+    apply Vec.get_swap_neq
+    . apply Fin.ne_of_val_ne
+      exact Nat.ne_of_lt fi
+    . apply Fin.ne_of_val_ne
+      exact Nat.ne_of_lt fj
+
+theorem partition.partition {α : Type} [Ord α] {n : Nat}
+  (arr : Vec α n) (first last : Nat)
+  (fl : first ≤ last) (ln : last < n)
+  (result : { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n)
+  (eq : partition arr first last fl ln = result) :
+  (∀k : Nat, first ≤ k → (km : k < result.1) →
+    result.2[k]'(Nat.lt_trans km (Nat.lt_of_le_of_lt result.1.property.2 ln)) ≪ arr[first]'(Nat.lt_of_le_of_lt fl ln)) ∧
+  (result.2[result.1.val]'(Nat.lt_of_le_of_lt result.1.property.2 ln) = arr[first]'(Nat.lt_of_le_of_lt fl ln)) ∧
+  (∀k : Nat, result.1 < k → (kl : k ≤ last) →
+    ¬result.2[k]'(Nat.lt_of_le_of_lt kl ln) ≪ arr[first]'(Nat.lt_of_le_of_lt fl ln)) := by
+
+  let afterLoop := partitionImpl arr first last last fl .refl ln
+  let mid := afterLoop.1
+  let arr' := afterLoop.2
+  let swapped := arr'.swap ⟨first, Nat.lt_of_le_of_lt fl ln⟩ ⟨mid, Nat.lt_of_le_of_lt mid.property.2 ln⟩
+  have : result.1 = mid := by
+    rw [←eq]
+    unfold partition
+    simp [afterLoop]
+  have : result.2 = swapped := by
+    rw [←eq]
+    unfold partition
+    simp [afterLoop, dbgTraceIfShared]
+  have : first < n := Nat.lt_of_le_of_lt fl ln
+  have : mid < n := Nat.lt_of_le_of_lt mid.property.2 ln
+
+  have first_eq : arr'[first] = arr[first] := by
+    apply partitionImpl.first_eq
+
+  let inv₀ : partitionImpl.LoopInvariant arr first last last last (by assumption) ln ln := by
+    apply partitionImpl.LoopInvariant.intro
+    . intro k lk kl
+      exact (Nat.lt_irrefl k (Nat.lt_trans kl lk)).elim
+    . intro k lk kl
+      exact (Nat.lt_irrefl k (Nat.lt_of_le_of_lt kl lk)).elim
+    . intro ll
+      exact (Nat.lt_irrefl last ll).elim
+  let inv := partitionImpl.loop_invariant arr first last last last fl .refl (by assumption) ln ln inv₀ afterLoop (by rfl)
+  let ⟨a, b, c⟩ := inv
+
+  have p₁ (k : Nat) (fk : first ≤ k) (km : k < mid) : swapped[k]'(Nat.lt_trans km (Nat.lt_of_le_of_lt mid.property.2 ln)) ≪ arr[first] := by
+    have : k < n := Nat.lt_trans km (by assumption)
+
+    cases Nat.eq_or_lt_of_le fk with
+    | inl fk =>
+      have : swapped[k] = swapped[first] := by
+        simp [fk]
+      rw [this]
+      have : swapped[first] = arr'[mid.val] := by
+        apply Vec.get_swap_left
+      rw [this, ←first_eq]
+      exact inv.3 (fk ▸ km)
+    | inr fk =>
+      have : swapped[k] = arr'[k] := by
+        apply Vec.get_swap_neq
+        . apply Fin.ne_of_val_ne
+          exact Nat.ne_of_gt fk
+        . apply Fin.ne_of_val_ne
+          exact Nat.ne_of_lt km
+      rw [this, ←first_eq]
+      exact inv.1 k fk km
+
+  have p₂ : swapped[mid.val] = arr[first] := by
+    have : swapped[mid.val] = arr'[first] := by
+      apply Vec.get_swap_right
+    rw [this]
+    assumption
+
+  have p₃ (k : Nat) (mk : mid < k) (kl : k ≤ last) : ¬swapped[k]'(Nat.lt_of_le_of_lt kl ln) ≪ arr[first] := by
+    have : k < n := Nat.lt_of_le_of_lt kl ln
+    have : swapped[k] = arr'[k] := by
+      apply Vec.get_swap_neq
+      . apply Fin.ne_of_val_ne
+        exact Nat.ne_of_gt (Nat.lt_of_le_of_lt mid.property.1 mk)
+      . apply Fin.ne_of_val_ne
+        exact Nat.ne_of_gt mk
+    rw [this, ←first_eq]
+    exact inv.2 k mk kl
+
+  apply And.intro
+  . simp [*]
+    apply p₁
+  . apply And.intro
+    . simp [*]
+    . simp [*]
+      apply p₃
