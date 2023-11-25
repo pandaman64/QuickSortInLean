@@ -28,14 +28,18 @@ def partitionImpl {α : Type} [Ord α]
       match partitionImpl arr first (i - 1) (j - 1) (by assumption) (by assumption) (by assumption) with
       | (⟨mid, hm⟩, arr) => (⟨mid, ⟨hm.1, Nat.le_trans hm.2 (Nat.sub_le ..)⟩⟩, arr)
   else
-    let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨j, by assumption⟩
+    -- Move out to help focus on the loop invariant
+    -- let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨j, by assumption⟩
     (⟨j, ⟨Nat.le_trans (by assumption) ij, by simp⟩⟩, arr)
 
 def partition {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat)
   (fl : first ≤ last) (ln : last < n) :
   { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n :=
-  partitionImpl arr first last last fl (by simp) ln
+  let result := partitionImpl arr first last last fl (by simp) ln
+  let mid := result.1
+  let arr := result.2
+  ⟨mid, (dbgTraceIfShared "swap2" arr).swap ⟨first, Nat.lt_of_le_of_lt fl ln⟩ ⟨mid, Nat.lt_of_le_of_lt mid.property.2 ln⟩⟩
 
 theorem Nat.sub_add_eq_add_sub {m n k : Nat} (km : k ≤ m) : m - k + n = m + n - k := by
   induction km with

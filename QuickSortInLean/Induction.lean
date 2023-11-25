@@ -45,7 +45,7 @@ theorem partitionImpl.simp_base {α : Type} [Ord α]
   {fi : first ≤ i} {ij : i ≤ j} {jn : j < n}
   (h : ¬first < i) :
   partitionImpl arr first i j fi ij jn =
-  (⟨j, ⟨Nat.le_trans (by assumption) ij, by simp⟩⟩, arr.swap ⟨first, Nat.lt_of_le_of_lt fi (Nat.lt_of_le_of_lt ij jn)⟩ ⟨j, jn⟩) := by
+  (⟨j, ⟨Nat.le_trans (by assumption) ij, by simp⟩⟩, arr) := by
   unfold partitionImpl
   simp [*, dbgTraceIfShared]
 

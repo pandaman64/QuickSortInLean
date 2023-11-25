@@ -9,7 +9,7 @@ theorem partitionImpl_permuted {α : Type} [Ord α]
   induction arr, first, i, j, fi, ij, jn using partitionImpl.induct with
   | base arr first i j fi ij jn =>
     simp [*]
-    exact .step ⟨first, by assumption⟩ ⟨j, by assumption⟩ .refl
+    exact .refl
   | step_lt arr first i j fi ij jn _ _ _ _ _ _ ih =>
     simp [*]
     exact ih
@@ -21,7 +21,11 @@ theorem partition_permuted {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat)
   (fl : first ≤ last) (ln : last < n) :
   permuted n arr (partition arr first last fl ln).2 := by
-  apply partitionImpl_permuted
+  let result := partition arr first last fl ln
+  let mid := result.1
+  simp [partition, dbgTraceIfShared]
+  let p := partitionImpl_permuted arr first last last fl (Nat.le_refl _) ln
+  exact permuted.trans p (.step ⟨first, Nat.lt_of_le_of_lt fl ln⟩ ⟨mid, Nat.lt_of_le_of_lt mid.property.2 ln⟩ .refl)
 
 theorem quickSortImpl_permuted {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Nat) (ln : last < n) :
