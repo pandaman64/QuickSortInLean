@@ -1,14 +1,11 @@
 import QuickSortInLean.Vec
+import Std.Data.Nat.Lemmas
 
 -- Workaround for Ord not inheriting from LT
 infix:50 " ≪ " => ltOfOrd.lt
 
-theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := by
-  induction h with
-  | refl => show m ≤ m; simp
-  | step _ ih =>
-    apply Nat.le_trans ih
-    apply Nat.sub_le_succ_sub
+-- TODO: replace
+theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := Nat.le_sub_one_of_lt h
 
 def partitionImpl {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first i j : Nat)
