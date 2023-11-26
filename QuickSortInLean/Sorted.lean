@@ -171,10 +171,10 @@ theorem partition.partition {α : Type} [Ord α] {n : Nat}
   (result : { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n)
   (eq : partition arr first last fl ln = result) :
   (∀k : Nat, first ≤ k → (km : k < result.1) →
-    result.2[k]'(Nat.lt_trans km (Nat.lt_of_le_of_lt result.1.property.2 ln)) ≪ arr[first]'(Nat.lt_of_le_of_lt fl ln)) ∧
+    result.2[k]'(Nat.lt_trans km (Nat.lt_of_le_of_lt result.1.property.2 ln)) <o arr[first]'(Nat.lt_of_le_of_lt fl ln)) ∧
   (result.2[result.1.val]'(Nat.lt_of_le_of_lt result.1.property.2 ln) = arr[first]'(Nat.lt_of_le_of_lt fl ln)) ∧
   (∀k : Nat, result.1 < k → (kl : k ≤ last) →
-    ¬result.2[k]'(Nat.lt_of_le_of_lt kl ln) ≪ arr[first]'(Nat.lt_of_le_of_lt fl ln)) := by
+    ¬result.2[k]'(Nat.lt_of_le_of_lt kl ln) <o arr[first]'(Nat.lt_of_le_of_lt fl ln)) := by
 
   let afterLoop := partitionImpl arr first last last fl .refl ln
   let mid := afterLoop.1
@@ -205,7 +205,7 @@ theorem partition.partition {α : Type} [Ord α] {n : Nat}
   let inv := partitionImpl.loop_invariant arr first last last last fl .refl (by assumption) ln ln inv₀ afterLoop (by rfl)
   let ⟨a, b, c⟩ := inv
 
-  have p₁ (k : Nat) (fk : first ≤ k) (km : k < mid) : swapped[k]'(Nat.lt_trans km (Nat.lt_of_le_of_lt mid.property.2 ln)) ≪ arr[first] := by
+  have p₁ (k : Nat) (fk : first ≤ k) (km : k < mid) : swapped[k]'(Nat.lt_trans km (Nat.lt_of_le_of_lt mid.property.2 ln)) <o arr[first] := by
     have : k < n := Nat.lt_trans km (by assumption)
 
     cases Nat.eq_or_lt_of_le fk with
@@ -233,7 +233,7 @@ theorem partition.partition {α : Type} [Ord α] {n : Nat}
     rw [this]
     assumption
 
-  have p₃ (k : Nat) (mk : mid < k) (kl : k ≤ last) : ¬swapped[k]'(Nat.lt_of_le_of_lt kl ln) ≪ arr[first] := by
+  have p₃ (k : Nat) (mk : mid < k) (kl : k ≤ last) : ¬swapped[k]'(Nat.lt_of_le_of_lt kl ln) <o arr[first] := by
     have : k < n := Nat.lt_of_le_of_lt kl ln
     have : swapped[k] = arr'[k] := by
       apply Vec.get_swap_neq
