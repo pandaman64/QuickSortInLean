@@ -1,8 +1,6 @@
+import QuickSortInLean.Order
 import QuickSortInLean.Vec
 import Std.Data.Nat.Lemmas
-
--- Workaround for Ord not inheriting from LT
-infix:50 " <o " => ltOfOrd.lt
 
 -- TODO: replace
 theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := Nat.le_sub_one_of_lt h

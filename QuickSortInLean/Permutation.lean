@@ -112,3 +112,58 @@ theorem permuted_map_index_invertible {arr arr' : Vec α n} (p : permuted n firs
   . exact permuted_map_invertible p
   . intro i
     exact permuted_map_index p i
+
+theorem permuted_map_index_in_range (p : permuted n first last arr1 arr2) (k : Fin n)
+  (fk : first ≤ k) (kl : k ≤ last) :
+  first ≤ p.to_map k ∧ p.to_map k ≤ last := by
+  induction p generalizing k with
+  | refl => simp [permuted.to_map, fk, kl]
+  | step i j fi ij jl p ih =>
+    simp [permuted.to_map]
+    let k' := if k = i then j else if k = j then i else k
+    have : first ≤ k'.val ∧ k'.val ≤ last := by
+      match decEq k i, decEq k j with
+      | isTrue ki, _ =>
+        simp [ki]
+        exact ⟨Nat.le_trans fi ij, jl⟩
+      | isFalse ki, isTrue kj =>
+        simp [ki]
+        simp [kj]
+        exact ⟨fi, Nat.le_trans ij jl⟩
+      | isFalse ki, isFalse kj =>
+        simp [ki, kj]
+        exact ⟨fk, kl⟩
+    exact ih k' this.1 this.2
+
+theorem permuted_map_index_in_range_inv (p : permuted n first last arr1 arr2) (k : Fin n)
+  (fk : first ≤ k) (kl : k ≤ last) :
+  ∃k' : Fin n, p.to_map k' = k ∧ first ≤ k' ∧ k' ≤ last := by
+  induction p generalizing k with
+  | refl => simp [permuted.to_map, fk, kl]
+  | step i j fi ij jl p ih =>
+    simp [permuted.to_map]
+    let ⟨k', ⟨index, fk', kl'⟩⟩ := ih k fk kl
+    let k'' := if k' = i then j else if k' = j then i else k'
+    exists k''
+
+    have : (if k'' = i then j else if k'' = j then i else k'') = k' := by
+      match decEq k' i, decEq k' j with
+      | isTrue ki, _ => simp [ki]
+      | _, isTrue kj => simp [kj]
+      | isFalse ki, isFalse kj => simp [ki, kj]
+    rw [this]
+
+    have : first ≤ k''.val ∧ k''.val ≤ last := by
+      match decEq k' i, decEq k' j with
+      | isTrue ki, _ =>
+        simp [ki]
+        exact ⟨Nat.le_trans fi ij, jl⟩
+      | isFalse ki, isTrue kj =>
+        simp [ki]
+        simp [kj]
+        exact ⟨fi, Nat.le_trans ij jl⟩
+      | isFalse ki, isFalse kj =>
+        simp [ki, kj]
+        exact ⟨fk', kl'⟩
+
+    exact ⟨index, this.1, this.2⟩
