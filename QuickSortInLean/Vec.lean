@@ -70,3 +70,6 @@ theorem Vec.get_swap_neq {α : Type} {n : Nat} (a : Vec α n) (i j k : Fin n)
   (a.swap i j)[k] = a[k] := by
   simp [Vec.swap_def]
   rw [Vec.get_set_ne (h := kj.symm), Vec.get_set_ne (h := ki.symm)]
+
+theorem Vec.getElem_eq_getElem {α : Type} {n : Nat} (a : Vec α n) (i : Fin n) :
+  a[i] = a.val[i.val]'(a.property.symm ▸ i.isLt) := by rfl
