@@ -3,12 +3,13 @@ import QuickSortInLean.Vec
 import QuickSortInLean.QuickSort
 import QuickSortInLean.Induction
 import QuickSortInLean.QuickSortPermutation
+import Std.Data.Fin.Basic
 
 def sortedRange [Ord α] (arr : Vec α n) (first last : Nat) : Prop :=
   ∀i j : Fin n, first ≤ i → i ≤ j → j ≤ last → (compare arr[i] arr[j]).isLE
 
-def sorted [Ord α] (arr : Vec α n) : Prop :=
-  ∀i j : Fin n, i ≤ j → (compare arr[i] arr[j]).isLE
+def sorted [Ord α] (arr : Array α) : Prop :=
+  ∀i j : Fin arr.size, i ≤ j → (compare arr[i] arr[j]).isLE
 
 structure partitionImpl.LoopInvariant {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first i j last : Nat)
@@ -423,3 +424,30 @@ theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
       have h₁ : sorted[i] ≤o arr[first] := Order.le_of_lt (getL i fi im)
       have h₂ : arr[first] ≤o sorted[j] := Order.le_of_not_lt (getMR j mj jl)
       apply Order.trans h₁ h₂
+
+theorem quickSort'_sortedRange {α : Type} [Order α] {n : Nat} (arr : Vec α n) :
+  sortedRange (quickSort' arr) 0 (n - 1) := by
+  if h : n > 0 then
+    simp [quickSort', h]
+    apply quickSortImpl_sortedRange
+  else
+    intro i
+    have : n = 0 := Nat.eq_zero_of_not_pos h
+    subst n
+    exact (Nat.not_lt_zero i.val i.isLt).elim
+
+theorem quickSort_size {α : Type} [Order α] (arr : Array α) :
+  (quickSort arr).size = arr.size := by
+  let sorted := quickSort' ⟨arr, rfl⟩
+  show sorted.val.size = arr.size
+  simp [sorted.property]
+
+theorem quickSort_sorted {α : Type} [Order α] (arr : Array α) :
+  sorted (quickSort arr) := by
+  let sr := quickSort'_sortedRange (arr : Vec α arr.size)
+  intro i j ij
+  have hi : 0 ≤ i.val := Nat.zero_le i.val
+  have s : (quickSort arr).size = arr.size := quickSort_size arr
+  have hj : j.val ≤ arr.size - 1 := Nat.le_sub_one_of_lt (s ▸ j.isLt)
+
+  exact sr (i.cast s) (j.cast s) hi ij hj
