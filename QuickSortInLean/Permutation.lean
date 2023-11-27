@@ -167,3 +167,27 @@ theorem permuted_map_index_in_range_inv (p : permuted n first last arr1 arr2) (k
         exact ⟨fk', kl'⟩
 
     exact ⟨index, this.1, this.2⟩
+
+theorem permuted.get_lt (p : permuted n first last arr1 arr2) {k : Fin n} (lt : k < first) :
+  arr2[k] = arr1[k] := by
+  induction p with
+  | refl => rfl
+  | step i j fi ij jl p ih =>
+    rw [ih]
+    rw [Vec.get_swap_neq _ i j k]
+    . apply Fin.ne_of_val_ne
+      exact Nat.ne_of_lt (Nat.lt_of_lt_of_le lt fi)
+    . apply Fin.ne_of_val_ne
+      exact Nat.ne_of_lt (Nat.lt_of_lt_of_le lt (Nat.le_trans fi ij))
+
+theorem permuted.get_gt (p : permuted n first last arr1 arr2) {k : Fin n} (gt : last < k) :
+  arr2[k] = arr1[k] := by
+  induction p with
+  | refl => rfl
+  | step i j fi ij jl p ih =>
+    rw [ih]
+    rw [Vec.get_swap_neq _ i j k]
+    . apply Fin.ne_of_val_ne
+      exact Nat.ne_of_gt (Nat.lt_of_le_of_lt (Nat.le_trans ij jl) gt)
+    . apply Fin.ne_of_val_ne
+      exact Nat.ne_of_gt (Nat.lt_of_le_of_lt jl gt)

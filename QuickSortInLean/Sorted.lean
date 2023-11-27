@@ -262,84 +262,19 @@ def Nat.range_split (i j x : Nat) (ij : i ≤ j) : Nat.RangeSplit i j x ij :=
     | isTrue ix => .ge ix jx
     | isFalse ix => .split (Nat.le_of_not_lt ix) (Nat.le_of_lt jx)
 
-theorem partitionImpl.get_lt {α : Type} [Ord α] {n : Nat}
-  (arr : Vec α n) (first i j : Nat)
-  (fi : first ≤ i) (ij : i ≤ j) (jn : j < n)
-  (k : Fin n) (lt : k < first) :
-  (partitionImpl arr first i j fi ij jn).2[k] = arr[k] := by
-  induction arr, first, i, j, fi, ij, jn using partitionImpl.induct with
-  | base => simp [*]
-  | step_lt => simp [*]
-  | step_ge _ _ _ _ fi ij =>
-    simp [*]
-    apply Vec.get_swap_neq
-    . apply Fin.ne_of_val_ne
-      exact Nat.ne_of_lt (Nat.lt_of_lt_of_le lt fi)
-    . apply Fin.ne_of_val_ne
-      exact Nat.ne_of_lt (Nat.lt_of_lt_of_le lt (Nat.le_trans fi ij))
-
 theorem quickSortImpl.get_lt {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first last : Nat) (ln : last < n)
   (k : Fin n) (lt : k < first) :
   (quickSortImpl arr first last ln)[k] = arr[k] := by
-  induction arr, first, last, ln using quickSortImpl.induct with
-  | base => simp [*]
-  | step arr first last ln fl parted eq ih₁ ih₂ =>
-    let afterLoop := partitionImpl arr first last last (Nat.le_of_lt fl) .refl ln
-    have : k.val < parted.1.val + 1 :=
-      Nat.lt_of_lt_of_le lt (Nat.le_trans parted.1.property.1 (Nat.le_succ _))
-    simp [*]
-    rw [←eq, partition]
-    simp [dbgTraceIfShared]
-    conv =>
-      lhs
-      tactic =>
-        apply Vec.get_swap_neq
-        . apply Fin.ne_of_val_ne
-          exact Nat.ne_of_lt lt
-        . apply Fin.ne_of_val_ne
-          exact Nat.ne_of_lt (Nat.lt_of_lt_of_le lt afterLoop.1.property.1)
-    apply partitionImpl.get_lt (lt := lt)
-
-theorem partitionImpl.get_gt {α : Type} [Ord α] {n : Nat}
-  (arr : Vec α n) (first i j : Nat)
-  (fi : first ≤ i) (ij : i ≤ j) (jn : j < n)
-  (k : Fin n) (gt : k > j) :
-  (partitionImpl arr first i j fi ij jn).2[k] = arr[k] := by
-  induction arr, first, i, j, fi, ij, jn using partitionImpl.induct with
-  | base => simp [*]
-  | step_lt => simp [*]
-  | step_ge arr _ i j fi ij =>
-    have : k.val > j - 1 := Nat.lt_of_le_of_lt (Nat.sub_le ..) gt
-    simp [*]
-    apply Vec.get_swap_neq
-    . apply Fin.ne_of_val_ne
-      exact Nat.ne_of_gt (Nat.lt_of_le_of_lt ij gt)
-    . apply Fin.ne_of_val_ne
-      exact Nat.ne_of_gt gt
+  let p := quickSortImpl_permuted arr first last ln
+  exact p.get_lt lt
 
 theorem quickSortImpl.get_gt {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first last : Nat) (ln : last < n)
   (k : Fin n) (gt : k > last) :
   (quickSortImpl arr first last ln)[k] = arr[k] := by
-  induction arr, first, last, ln using quickSortImpl.induct with
-  | base => simp [*]
-  | step arr first last ln fl parted eq ih₁ ih₂ =>
-    let afterLoop := partitionImpl arr first last last (Nat.le_of_lt fl) .refl ln
-    have : k.val > parted.fst.val - 1 :=
-      Nat.lt_of_le_of_lt (Nat.le_trans (Nat.sub_le ..) parted.1.property.2) gt
-    simp [*]
-    rw [←eq, partition]
-    simp [dbgTraceIfShared]
-    conv =>
-      lhs
-      tactic =>
-        apply Vec.get_swap_neq
-        . apply Fin.ne_of_val_ne
-          exact Nat.ne_of_gt (Nat.lt_trans fl gt)
-        . apply Fin.ne_of_val_ne
-          exact Nat.ne_of_gt (Nat.lt_of_le_of_lt afterLoop.1.property.2 gt)
-    apply partitionImpl.get_gt (gt := gt)
+  let p := quickSortImpl_permuted arr first last ln
+  exact p.get_gt gt
 
 theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
   (arr : Vec α n) (first last : Nat) (ln : last < n) :
