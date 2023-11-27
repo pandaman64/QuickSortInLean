@@ -251,16 +251,16 @@ theorem partition.partition {α : Type} [Ord α] {n : Nat}
 
 inductive Nat.RangeSplit (i j x : Nat) (ij : i ≤ j) : Prop where
   | lt : i < x → j < x → Nat.RangeSplit i j x ij
-  | ge : x ≤ i → x ≤ j → Nat.RangeSplit i j x ij
-  | split : i < x → x ≤ j → Nat.RangeSplit i j x ij
+  | ge : x < i → x < j → Nat.RangeSplit i j x ij
+  | split : i ≤ x → x ≤ j → Nat.RangeSplit i j x ij
 
 def Nat.range_split (i j x : Nat) (ij : i ≤ j) : Nat.RangeSplit i j x ij :=
-  match Nat.decLt i x, Nat.decLt j x with
-  | isTrue ix, isTrue jx => .lt ix jx
-  | isTrue ix, isFalse jx => .split ix (Nat.le_of_not_lt jx)
-  | isFalse ix, isTrue jx =>
-    nomatch Nat.lt_irrefl x (Nat.lt_of_le_of_lt (Nat.le_trans (Nat.le_of_not_lt ix) ij) jx)
-  | isFalse ix, isFalse jx => .ge (Nat.le_of_not_lt ix) (Nat.le_of_not_lt jx)
+  match Nat.lt_trichotomy j x with
+  | .inl jx => .lt (Nat.lt_of_le_of_lt ij jx) jx
+  | .inr (.inl jx) => .split (jx ▸ ij) (Nat.le_of_eq jx.symm)
+  | .inr (.inr jx) => match Nat.decLt x i with
+    | isTrue ix => .ge ix jx
+    | isFalse ix => .split (Nat.le_of_not_lt ix) (Nat.le_of_lt jx)
 
 theorem partitionImpl.get_lt {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first i j : Nat)
@@ -402,6 +402,13 @@ theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
       rw [quickSortImpl.get_gt (gt := Nat.lt_of_le_of_lt (Nat.sub_le ..) mk')]
       apply r k' mk' kl'
 
+    have getLM (k : Fin n) (fk : first ≤ k) (km : k ≤ mid.val) : sorted[k] ≤o arr[first] := by
+      cases Nat.eq_or_lt_of_le km with
+      | inl km =>
+        rw [getM k km.symm]
+        apply Order.refl
+      | inr km => exact Order.le_of_lt (getL k fk km)
+
     have getMR (k : Fin n) (mk : mid.val ≤ k) (kl : k ≤ last) : ¬sorted[k] <o arr[first] := by
       match Nat.eq_or_lt_of_le mk with
       | .inl mk =>
@@ -414,14 +421,9 @@ theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
       rw [quickSortImpl.get_lt (lt := Nat.lt_trans im (Nat.lt_succ_self ..))]
       rw [quickSortImpl.get_lt (lt := Nat.lt_trans jm (Nat.lt_succ_self ..))]
       exact ih₁ i j fi ij (Nat.le_sub_of_add_le jm)
-    | ge mi mj =>
-      cases Nat.lt_or_eq_of_le mi with
-      | inl mi => exact ih₂ i j mi ij jl
-      | inr mi =>
-        rw [getM i mi]
-        exact Order.le_of_not_lt (getMR j mj jl)
+    | ge mi mj => exact ih₂ i j mi ij jl
     | split im mj =>
-      have h₁ : sorted[i] ≤o arr[first] := Order.le_of_lt (getL i fi im)
+      have h₁ : sorted[i] ≤o arr[first] := getLM i fi im
       have h₂ : arr[first] ≤o sorted[j] := Order.le_of_not_lt (getMR j mj jl)
       apply Order.trans h₁ h₂
 
