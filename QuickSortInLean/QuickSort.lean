@@ -2,39 +2,32 @@ import QuickSortInLean.Order
 import QuickSortInLean.Vec
 import Std.Data.Nat.Lemmas
 
--- TODO: replace
-theorem Nat.le_sub_of_lt {m n : Nat} (h : m < n) : m ≤ n - 1 := Nat.le_sub_one_of_lt h
+theorem Fin.sub_isLt {n k : Nat} {i : Fin n} : i.val - k < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) i.isLt
 
 def partitionImpl {α : Type} [Ord α]
-  {n : Nat} (arr : Vec α n) (first i j : Nat)
-  (fi : first ≤ i) (ij : i ≤ j) (jn : j < n) :
+  {n : Nat} (arr : Vec α n) (first i j : Fin n)
+  (fi : first ≤ i) (ij : i ≤ j) :
   { mid : Nat // first ≤ mid ∧ mid ≤ j } × Vec α n :=
-  have : i < n := Nat.lt_of_le_of_lt ij jn
-  have : first < n := Nat.lt_of_le_of_lt fi this
-  if fi : first < i then
-    have : first ≤ i - 1 := Nat.le_sub_of_lt fi
+  if h : first < i then
+    have : first ≤ i.val - 1 := Nat.le_sub_one_of_lt h
     if arr[i] <o arr[first] then
-      have : i - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
-      partitionImpl arr first (i - 1) j (by assumption) (by assumption) jn
+      have : i.val - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
+      partitionImpl arr first ⟨i - 1, Fin.sub_isLt⟩ j (by assumption) (by assumption)
     else
-      have : i - 1 ≤ j - 1 := Nat.sub_le_sub_right ij 1
-      have : j - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) jn
-      let arr := (dbgTraceIfShared "swap1" arr).swap ⟨i, by assumption⟩ ⟨j, jn⟩
-      match partitionImpl arr first (i - 1) (j - 1) (by assumption) (by assumption) (by assumption) with
+      let arr := (dbgTraceIfShared "swap1" arr).swap i j
+      match partitionImpl arr first ⟨i - 1, Fin.sub_isLt⟩ ⟨j - 1, Fin.sub_isLt⟩ (by assumption) (Nat.sub_le_sub_right ij 1) with
       | (⟨mid, hm⟩, arr) => (⟨mid, ⟨hm.1, Nat.le_trans hm.2 (Nat.sub_le ..)⟩⟩, arr)
   else
-    -- Move out to help focus on the loop invariant
-    -- let arr := (dbgTraceIfShared "swap2" arr).swap ⟨first, by assumption⟩ ⟨j, by assumption⟩
-    (⟨j, ⟨Nat.le_trans (by assumption) ij, by simp⟩⟩, arr)
+    (⟨j, ⟨Nat.le_trans fi ij, by simp⟩⟩, arr)
+termination_by _ => i.val
 
 def partition {α : Type} [Ord α]
-  {n : Nat} (arr : Vec α n) (first last : Nat)
-  (fl : first ≤ last) (ln : last < n) :
+  {n : Nat} (arr : Vec α n) (first last : Fin n) (fl : first ≤ last) :
   { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n :=
-  let result := partitionImpl arr first last last fl (by simp) ln
+  let result := partitionImpl arr first last last fl (Nat.le_refl _)
   let mid := result.1
   let arr := result.2
-  ⟨mid, (dbgTraceIfShared "swap2" arr).swap ⟨first, Nat.lt_of_le_of_lt fl ln⟩ ⟨mid, Nat.lt_of_le_of_lt mid.property.2 ln⟩⟩
+  ⟨mid, (dbgTraceIfShared "swap2" arr).swap first ⟨mid, Nat.lt_of_le_of_lt mid.property.2 last.isLt⟩⟩
 
 theorem Nat.sub_add_eq_add_sub {m n k : Nat} (km : k ≤ m) : m - k + n = m + n - k := by
   induction km with
@@ -50,10 +43,10 @@ theorem Nat.lt_sub_right {m n k : Nat} (mk : k ≤ m) (mn : m < n) : m - k < n -
   apply Nat.sub_le_sub_right mn
 
 def quickSortImpl {α : Type} [Ord α]
-  {n : Nat} (arr : Vec α n) (first last : Nat) (ln : last < n) :
+  {n : Nat} (arr : Vec α n) (first : Nat) (last : Fin n) :
   Vec α n :=
   if lt : first < last then
-    let parted := partition arr first last (Nat.le_of_lt lt) ln
+    let parted := partition arr ⟨first, Nat.lt_trans lt last.isLt⟩ last (Nat.le_of_lt lt)
     let mid := parted.1.val
     let hm := parted.1.property
     let arr := parted.2
@@ -61,11 +54,11 @@ def quickSortImpl {α : Type} [Ord α]
     -- Lemmas
     have : mid - 1 - first < last - first := termination_lemma lt hm.1 hm.2
     have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hm.1 (Nat.lt_succ_self ..))
-    have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 ln)
+    have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 last.isLt)
 
     -- Recursion
-    let arr := quickSortImpl arr first (mid - 1) (by assumption)
-    quickSortImpl arr (mid + 1) last ln
+    let arr := quickSortImpl arr first ⟨mid - 1, by assumption⟩
+    quickSortImpl arr (mid + 1) last
   else
     arr
 where
@@ -77,14 +70,14 @@ where
       rw [Nat.sub_sub, this, Nat.add_comm, Nat.sub_self_add]
       exact Nat.zero_lt_sub_of_lt lt
     | isTrue h =>
-      have : first ≤ mid - 1 := Nat.le_sub_of_lt h
+      have : first ≤ mid - 1 := Nat.le_sub_one_of_lt h
       have : mid - 1 < mid := Nat.pred_lt' h
       exact Nat.lt_sub_right (by assumption) (Nat.lt_of_lt_of_le (by assumption) hmid₂)
-termination_by _ => last - first
+termination_by _ => last.val - first
 
 def quickSort' {α : Type} [Ord α] {n : Nat} (arr : Vec α n) : Vec α n :=
   if _ : n > 0 then
-    quickSortImpl arr 0 (n - 1) (Nat.sub_lt (by assumption) (by decide))
+    quickSortImpl arr 0 ⟨n - 1, Nat.sub_lt (by assumption) (by decide)⟩
   else
     arr
 
