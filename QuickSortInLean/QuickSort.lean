@@ -52,7 +52,10 @@ def quickSortImpl {α : Type} [Ord α]
     let arr := parted.2
 
     -- Lemmas
-    have : mid - 1 - first < last - first := termination_lemma lt hm.1 hm.2
+    have : mid - 1 < last :=
+      match Nat.eq_zero_or_pos mid with
+      | .inl eq => by simp[eq]; exact Nat.zero_lt_of_lt lt
+      | .inr pos => Nat.lt_of_lt_of_le (Nat.sub_lt pos (by decide)) hm.2
     have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hm.1 (Nat.lt_succ_self ..))
     have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 last.isLt)
 
@@ -61,19 +64,7 @@ def quickSortImpl {α : Type} [Ord α]
     quickSortImpl arr (mid + 1) last
   else
     arr
-where
-  termination_lemma {mid : Nat} (lt : first < last) (hmid₁ : first ≤ mid) (hmid₂ : mid ≤ last) : mid - 1 - first < last - first := by
-    cases Nat.decLt first mid with
-    | isFalse h =>
-      rw [Nat.not_lt] at h
-      have : (1 + first) = (1 + mid) := congrArg (1 + ·) (Nat.le_antisymm hmid₁ h)
-      rw [Nat.sub_sub, this, Nat.add_comm, Nat.sub_self_add]
-      exact Nat.zero_lt_sub_of_lt lt
-    | isTrue h =>
-      have : first ≤ mid - 1 := Nat.le_sub_one_of_lt h
-      have : mid - 1 < mid := Nat.pred_lt' h
-      exact Nat.lt_sub_right (by assumption) (Nat.lt_of_lt_of_le (by assumption) hmid₂)
-termination_by _ => last.val - first
+termination_by _ => (last.val, last.val - first)
 
 def quickSort' {α : Type} [Ord α] {n : Nat} (arr : Vec α n) : Vec α n :=
   if _ : n > 0 then

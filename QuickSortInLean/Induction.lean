@@ -84,7 +84,10 @@ theorem quickSortImpl.induct {α : Type} [Ord α] {n : Nat}
     let hm := parted.1.property
     have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 last.isLt)
     -- Termination lemmas
-    have : mid - 1 - first < last - first := quickSortImpl.termination_lemma first last lt hm.1 hm.2
+    have : mid - 1 < last :=
+      match Nat.eq_zero_or_pos mid with
+      | .inl eq => by simp[eq]; exact Nat.zero_lt_of_lt lt
+      | .inr pos => Nat.lt_of_lt_of_le (Nat.sub_lt pos (by decide)) hm.2
     have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hm.1 (Nat.lt_succ_self ..))
 
     apply step arr first last lt parted (Eq.refl parted) (by assumption)
@@ -95,7 +98,7 @@ theorem quickSortImpl.induct {α : Type} [Ord α] {n : Nat}
         base step
   else
     apply base arr first last lt
-termination_by _ => last - first
+termination_by _ => (last.val, last - first)
 
 @[simp]
 theorem quickSortImpl.simp_base {α : Type} [Ord α]
