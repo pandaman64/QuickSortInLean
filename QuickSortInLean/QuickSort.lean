@@ -2,7 +2,7 @@ import QuickSortInLean.Order
 import QuickSortInLean.Vec
 import Std.Data.Nat.Lemmas
 
-theorem Fin.sub_isLt {n k : Nat} {i : Fin n} : i.val - k < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) i.isLt
+abbrev Fin.prev {n : Nat} (i : Fin n) : Fin n := ⟨i.val - 1, Nat.lt_of_le_of_lt (Nat.sub_le ..) i.isLt⟩
 
 def partitionImpl {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first i j : Fin n)
@@ -12,10 +12,10 @@ def partitionImpl {α : Type} [Ord α]
     have : first ≤ i.val - 1 := Nat.le_sub_one_of_lt h
     if arr[i] <o arr[first] then
       have : i.val - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
-      partitionImpl arr first ⟨i - 1, Fin.sub_isLt⟩ j (by assumption) (by assumption)
+      partitionImpl arr first i.prev j (by assumption) (by assumption)
     else
       let arr := (dbgTraceIfShared "swap1" arr).swap i j
-      match partitionImpl arr first ⟨i - 1, Fin.sub_isLt⟩ ⟨j - 1, Fin.sub_isLt⟩ (by assumption) (Nat.sub_le_sub_right ij 1) with
+      match partitionImpl arr first i.prev j.prev (by assumption) (Nat.sub_le_sub_right ij 1) with
       | (⟨mid, hm⟩, arr) => (⟨mid, ⟨hm.1, Nat.le_trans hm.2 (Nat.sub_le ..)⟩⟩, arr)
   else
     (⟨j, ⟨Nat.le_trans fi ij, by simp⟩⟩, arr)

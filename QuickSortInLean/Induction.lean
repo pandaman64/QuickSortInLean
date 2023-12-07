@@ -7,11 +7,11 @@ theorem partitionImpl.induct {α : Type} [Ord α] {n : Nat}
   (base : ∀arr first i j fi ij (_ : ¬first < i), motive arr first i j fi ij)
   (step_lt : ∀arr (first i j : Fin n) fi ij
     (_ : first < i) (_ : first ≤ i.val - 1) (_ : arr[i] <o arr[first]) (_ : i.val - 1 ≤ j)
-    (ih : motive arr first ⟨i.val - 1, Fin.sub_isLt⟩ j (by assumption) (by assumption)),
+    (ih : motive arr first i.prev j (by assumption) (by assumption)),
     motive arr first i j fi ij)
   (step_ge : ∀arr (first i j : Fin n) fi ij
     (_ : first < i) (_ : first ≤ i.val - 1) (_ : ¬arr[i] <o arr[first]) (_ : i.val - 1 ≤ j.val - 1)
-    (ih : motive (arr.swap i j) first ⟨i - 1, Fin.sub_isLt⟩ ⟨j - 1, Fin.sub_isLt⟩ (by assumption) (by assumption)),
+    (ih : motive (arr.swap i j) first i.prev j.prev (by assumption) (by assumption)),
     motive arr first i j fi ij)
   : motive arr first i j fi ij := by
   if h : first < i then
@@ -20,7 +20,7 @@ theorem partitionImpl.induct {α : Type} [Ord α] {n : Nat}
       have : i.val - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
       apply step_lt arr first i j fi ij h (by assumption) (by assumption)
       apply partitionImpl.induct motive
-        arr first ⟨i - 1, Fin.sub_isLt⟩ j
+        arr first i.prev j
         (by assumption) (by assumption)
         base step_lt step_ge
     else
@@ -28,7 +28,7 @@ theorem partitionImpl.induct {α : Type} [Ord α] {n : Nat}
       let arr' := arr.swap i j
       apply step_ge arr first i j fi ij h (by assumption) (by assumption) (by assumption)
       apply partitionImpl.induct motive
-        arr' first ⟨i - 1, Fin.sub_isLt⟩ ⟨j - 1, Fin.sub_isLt⟩
+        arr' first i.prev j.prev
         (by assumption) (by assumption)
         base step_lt step_ge
   else
@@ -50,7 +50,7 @@ theorem partitionImpl.simp_step_lt {α : Type} [Ord α]
   {n : Nat} {arr : Vec α n} {first i j : Fin n}
   {fi : first ≤ i} {ij : i ≤ j}
   (h : first < i) (_ : arr[i] <o arr[first]) :
-  partitionImpl arr first i j fi ij = partitionImpl arr first ⟨i - 1, Fin.sub_isLt⟩ j (Nat.le_sub_one_of_lt h) (Nat.le_trans (Nat.sub_le ..) ij) := by
+  partitionImpl arr first i j fi ij = partitionImpl arr first i.prev j (Nat.le_sub_one_of_lt h) (Nat.le_trans (Nat.sub_le ..) ij) := by
   rw [partitionImpl]
   simp [*]
 
@@ -60,7 +60,7 @@ theorem partitionImpl.simp_step_ge {α : Type} [Ord α]
   {fi : first ≤ i} {ij : i ≤ j}
   (h : first < i) (_ : ¬arr[i] <o arr[first]) :
   partitionImpl arr first i j fi ij =
-  match partitionImpl (arr.swap i j) first ⟨i - 1, Fin.sub_isLt⟩ ⟨j - 1, Fin.sub_isLt⟩
+  match partitionImpl (arr.swap i j) first i.prev j.prev
     (Nat.le_sub_one_of_lt h) (Nat.sub_le_sub_right ij 1) with
   | (⟨mid, hm⟩, arr) => (⟨mid, ⟨hm.1, Nat.le_trans hm.2 (Nat.sub_le ..)⟩⟩, arr) := by
   rw [partitionImpl]

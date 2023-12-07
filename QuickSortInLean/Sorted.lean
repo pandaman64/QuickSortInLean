@@ -32,7 +32,7 @@ theorem partitionImpl.loop_invariant {α : Type} [Ord α] {n : Nat}
     have : i = first := Fin.eq_of_val_eq (Nat.le_antisymm (Nat.le_of_not_lt h) fi)
     exact this ▸ inv
   | step_lt arr first i j _ _ fi _ lt _ ih =>
-    have inv : LoopInvariant arr first ⟨i.val - 1, Fin.sub_isLt⟩ j last := by
+    have inv : LoopInvariant arr first i.prev j last := by
       apply LoopInvariant.intro
       . intro k ik kj
         have ik : i.val ≤ k.val := by
@@ -65,11 +65,11 @@ theorem partitionImpl.loop_invariant {α : Type} [Ord α] {n : Nat}
       . apply Fin.ne_of_val_ne
         exact Nat.ne_of_lt (Nat.lt_of_lt_of_le fi ij)
 
-    let result := partitionImpl swapped first ⟨i - 1, Fin.sub_isLt⟩ ⟨j - 1, Fin.sub_isLt⟩ (by assumption) (by assumption)
+    let result := partitionImpl swapped first i.prev j.prev (by assumption) (by assumption)
     subst eq
     simp [*]
 
-    have inv : LoopInvariant swapped first ⟨i - 1, Fin.sub_isLt⟩ ⟨j - 1, Fin.sub_isLt⟩ last := by
+    have inv : LoopInvariant swapped first i.prev j.prev last := by
       apply LoopInvariant.intro
       . intro k ik kj
         have ik : i.val ≤ k.val := by
@@ -122,21 +122,21 @@ theorem partitionImpl.loop_invariant {α : Type} [Ord α] {n : Nat}
           exact ij
         cases Nat.eq_or_lt_of_le ij with
         | inl ij =>
-          have : swapped[Fin.mk (j - 1) Fin.sub_isLt] = arr[j] := by
-            simp [ij.symm]
+          have : swapped[j.prev] = arr[j] := by
+            simp [ij.symm, Fin.prev]
             apply Vec.get_swap_left
           rw [this, sf]
           have : i < j := Nat.lt_of_le_of_lt (by assumption : i.val ≤ j.val - 1) (by assumption)
           exact inv.3 this
         | inr ij =>
-          have : swapped[Fin.mk (j - 1) Fin.sub_isLt] = arr[Fin.mk (j - 1) Fin.sub_isLt] := by
+          have : swapped[j.prev] = arr[j.prev] := by
             apply Vec.get_swap_neq
             . apply Fin.ne_of_val_ne
               exact Nat.ne_of_gt ij
             . apply Fin.ne_of_val_ne
               exact Nat.ne_of_lt (by assumption)
           rw [this, sf]
-          apply inv.1 ⟨j - 1, Fin.sub_isLt⟩ ij (by assumption)
+          apply inv.1 j.prev ij (by assumption)
 
     exact ih inv result (by rfl)
 
