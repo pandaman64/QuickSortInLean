@@ -34,7 +34,7 @@ theorem quickSortImpl_permuted {α : Type} [Ord α]
   | base arr first last h =>
     simp [*]
     exact .refl
-  | step arr first last lt parted eq _ ih₁ ih₂ =>
+  | step arr first last lt parted eq ih₁ ih₂ =>
     simp [*]
     let p := partition_permuted arr ⟨first, Nat.lt_trans lt last.isLt⟩ last (Nat.le_of_lt lt)
     rw [eq] at p

@@ -41,7 +41,7 @@ theorem partitionImpl.simp_base {α : Type} [Ord α]
   {fi : first ≤ i} {ij : i ≤ j}
   (h : ¬first < i) :
   partitionImpl arr first i j fi ij =
-  (⟨j, ⟨Nat.le_trans (by assumption) ij, by simp⟩⟩, arr) := by
+  (⟨j, ⟨Nat.le_trans (by assumption) ij, Nat.le_refl _⟩⟩, arr) := by
   unfold partitionImpl
   simp [*, dbgTraceIfShared]
 
@@ -71,10 +71,9 @@ theorem quickSortImpl.induct {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first : Nat) (last : Fin n)
   (base : ∀arr (first : Nat) (last : Fin n) (_ : ¬first < last), motive arr first last)
   (step : ∀arr (first : Nat) (last : Fin n) (lt : first < last)
-    (parted : { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n) (_ : partition arr ⟨first, Nat.lt_trans lt last.isLt⟩ last (Nat.le_of_lt lt) = parted)
-    (_ : parted.1 - 1 < n)
-    (ih₁ : motive parted.2 first ⟨parted.1 - 1, by assumption⟩)
-    (ih₂ : motive (quickSortImpl parted.2 first ⟨parted.1 - 1, by assumption⟩) (parted.1 + 1) last),
+    (parted : { mid : Fin n // first ≤ mid ∧ mid ≤ last } × Vec α n) (_ : partition arr ⟨first, Nat.lt_trans lt last.isLt⟩ last (Nat.le_of_lt lt) = parted)
+    (ih₁ : motive parted.2 first parted.1.val.prev)
+    (ih₂ : motive (quickSortImpl parted.2 first parted.1.val.prev) (parted.1 + 1) last),
     motive arr first last
   )
   : motive arr first last := by
@@ -82,19 +81,18 @@ theorem quickSortImpl.induct {α : Type} [Ord α] {n : Nat}
     let parted := partition arr ⟨first, Nat.lt_trans lt last.isLt⟩ last (Nat.le_of_lt lt)
     let mid := parted.1.val
     let hm := parted.1.property
-    have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 last.isLt)
     -- Termination lemmas
-    have : mid - 1 < last :=
+    have : mid.val - 1 < last :=
       match Nat.eq_zero_or_pos mid with
       | .inl eq => by simp[eq]; exact Nat.zero_lt_of_lt lt
       | .inr pos => Nat.lt_of_lt_of_le (Nat.sub_lt pos (by decide)) hm.2
     have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hm.1 (Nat.lt_succ_self ..))
 
-    apply step arr first last lt parted (Eq.refl parted) (by assumption)
+    apply step arr first last lt parted (Eq.refl parted)
     case ih₁ =>
-      apply quickSortImpl.induct motive parted.2 first ⟨mid - 1, by assumption⟩ base step
+      apply quickSortImpl.induct motive parted.2 first mid.prev base step
     case ih₂ =>
-      apply quickSortImpl.induct motive (quickSortImpl parted.2 first ⟨mid - 1, by assumption⟩) (mid + 1) last
+      apply quickSortImpl.induct motive (quickSortImpl parted.2 first mid.prev) (mid + 1) last
         base step
   else
     apply base arr first last lt
@@ -114,8 +112,6 @@ theorem quickSortImpl.simp_step {α : Type} [Ord α]
   (lt : first < last) :
   let parted := partition arr ⟨first, Nat.lt_trans lt last.isLt⟩ last (Nat.le_of_lt lt)
   let mid := parted.1.val
-  let hm := parted.1.property
-  have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 last.isLt)
-  quickSortImpl arr first last = quickSortImpl (quickSortImpl parted.2 first ⟨mid - 1, by assumption⟩) (mid + 1) last := by
+  quickSortImpl arr first last = quickSortImpl (quickSortImpl parted.2 first mid.prev) (mid + 1) last := by
   rw [quickSortImpl]
   simp [*]

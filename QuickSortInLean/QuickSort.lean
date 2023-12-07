@@ -7,7 +7,7 @@ abbrev Fin.prev {n : Nat} (i : Fin n) : Fin n := ⟨i.val - 1, Nat.lt_of_le_of_l
 def partitionImpl {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first i j : Fin n)
   (fi : first ≤ i) (ij : i ≤ j) :
-  { mid : Nat // first ≤ mid ∧ mid ≤ j } × Vec α n :=
+  { mid : Fin n // first ≤ mid ∧ mid ≤ j } × Vec α n :=
   if h : first < i then
     have : first ≤ i.val - 1 := Nat.le_sub_one_of_lt h
     if arr[i] <o arr[first] then
@@ -18,12 +18,12 @@ def partitionImpl {α : Type} [Ord α]
       match partitionImpl arr first i.prev j.prev (by assumption) (Nat.sub_le_sub_right ij 1) with
       | (⟨mid, hm⟩, arr) => (⟨mid, ⟨hm.1, Nat.le_trans hm.2 (Nat.sub_le ..)⟩⟩, arr)
   else
-    (⟨j, ⟨Nat.le_trans fi ij, by simp⟩⟩, arr)
+    (⟨j, ⟨Nat.le_trans fi ij, Nat.le_refl _⟩⟩, arr)
 termination_by _ => i.val
 
 def partition {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Fin n) (fl : first ≤ last) :
-  { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n :=
+  { mid : Fin n // first ≤ mid ∧ mid ≤ last } × Vec α n :=
   let result := partitionImpl arr first last last fl (Nat.le_refl _)
   let mid := result.1
   let arr := result.2
@@ -52,15 +52,14 @@ def quickSortImpl {α : Type} [Ord α]
     let arr := parted.2
 
     -- Lemmas
-    have : mid - 1 < last :=
+    have : mid.val - 1 < last :=
       match Nat.eq_zero_or_pos mid with
       | .inl eq => by simp[eq]; exact Nat.zero_lt_of_lt lt
       | .inr pos => Nat.lt_of_lt_of_le (Nat.sub_lt pos (by decide)) hm.2
     have : last - (mid + 1) < last - first := Nat.sub_lt_sub_left lt (Nat.lt_of_le_of_lt hm.1 (Nat.lt_succ_self ..))
-    have : mid - 1 < n := Nat.lt_of_le_of_lt (Nat.sub_le ..) (Nat.lt_of_le_of_lt hm.2 last.isLt)
 
     -- Recursion
-    let arr := quickSortImpl arr first ⟨mid - 1, by assumption⟩
+    let arr := quickSortImpl arr first mid.prev
     quickSortImpl arr (mid + 1) last
   else
     arr

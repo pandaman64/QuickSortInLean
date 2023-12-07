@@ -22,7 +22,7 @@ theorem partitionImpl.loop_invariant {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first i j last : Fin n)
   (fi : first ≤ i) (ij : i ≤ j)
   (inv : LoopInvariant arr first i j last)
-  (result : { mid : Nat // first ≤ mid ∧ mid ≤ j } × Vec α n)
+  (result : { mid : Fin n // first ≤ mid ∧ mid ≤ j } × Vec α n)
   (eq : partitionImpl arr first i j fi ij = result) :
   LoopInvariant result.2 first first ⟨result.1.val, Nat.lt_of_le_of_lt result.1.property.2 j.isLt⟩ last := by
   induction arr, first, i, j, fi, ij using partitionImpl.induct with
@@ -158,11 +158,11 @@ theorem partitionImpl.first_eq {α : Type} [Ord α] {n : Nat}
 
 theorem partition.partition {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first last : Fin n) (fl : first ≤ last)
-  (result : { mid : Nat // first ≤ mid ∧ mid ≤ last } × Vec α n)
+  (result : { mid : Fin n // first ≤ mid ∧ mid ≤ last } × Vec α n)
   (eq : partition arr first last fl = result) :
   (∀k : Fin n, first ≤ k → (km : k.val < result.1.val) →
     result.2[k] <o arr[first]) ∧
-  (result.2[result.1.val]'(Nat.lt_of_le_of_lt result.1.property.2 last.isLt) = arr[first]) ∧
+  (result.2[result.1.val] = arr[first]) ∧
   (∀k : Fin n, result.1.val < k.val → (kl : k ≤ last) →
     ¬result.2[k] <o arr[first]) := by
 
@@ -278,20 +278,20 @@ theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
     have : i = j := Fin.eq_of_val_eq (Nat.le_antisymm ij jl)
     subst this
     apply Order.refl
-  | step arr first last lt parted eq _ ih₁ ih₂ =>
+  | step arr first last lt parted eq ih₁ ih₂ =>
     have : first < n := Nat.lt_trans lt last.isLt
     simp [*]
     intro i j fi ij jl
 
     let mid := parted.1
     have mn : mid.val < n := Nat.lt_of_le_of_lt mid.property.2 last.isLt
-    let sorted := quickSortImpl (quickSortImpl parted.snd first ⟨mid.val - 1, by assumption⟩) (mid.val + 1) last
+    let sorted := quickSortImpl (quickSortImpl parted.snd first mid.val.prev) (mid.val + 1) last
 
     let ⟨l, m, r⟩ := partition.partition arr ⟨first, by assumption⟩ last (Nat.le_of_lt lt) parted eq
 
     have getL (k : Fin n) (fk : first ≤ k) (km : k < mid.val) : sorted[k] <o arr[first] := by
       rw [quickSortImpl.get_lt (lt := (Nat.lt_trans km (Nat.lt_succ_self ..)))]
-      let p := quickSortImpl_permuted parted.2 first ⟨mid.val - 1, by assumption⟩
+      let p := quickSortImpl_permuted parted.2 first mid.val.prev
       let ⟨k', ⟨index, fk', km'⟩⟩ := permuted_map_index_in_range_inv p k fk (Nat.le_sub_one_of_lt km)
       let inv := index ▸ permuted_map_index p k'
       rw [←inv]
@@ -306,6 +306,9 @@ theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
       rw [quickSortImpl.get_lt (k := mid') (lt := Nat.lt_succ_self ..)]
       cases Nat.eq_zero_or_pos mid.val with
       | inl zero =>
+        have zero : mid.val = Fin.mk 0 mid.val.pos := by
+          apply Fin.eq_of_val_eq
+          simp [zero]
         simp [zero] at *
         exact m
       | inr pos =>
@@ -313,11 +316,11 @@ theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
         exact m
 
     have getR (k : Fin n) (mk : mid.val < k) (kl : k ≤ last) : ¬sorted[k] <o arr[first] := by
-      let p := quickSortImpl_permuted (quickSortImpl parted.snd first ⟨mid.val - 1, by assumption⟩) (mid.val + 1) last
+      let p := quickSortImpl_permuted (quickSortImpl parted.snd first mid.val.prev) (mid.val + 1) last
       let ⟨k', ⟨index, mk', kl'⟩⟩ := permuted_map_index_in_range_inv p k mk kl
       let inv := index ▸ permuted_map_index p k'
       rw [←inv]
-      have : (⟨mid.val - 1, by assumption⟩ : Fin n).val ≤ mid.val := by
+      have : mid.val.prev.val ≤ mid.val := by
         simp
         exact (Nat.sub_le ..)
       rw [quickSortImpl.get_gt (gt := Nat.lt_of_le_of_lt this mk')]
