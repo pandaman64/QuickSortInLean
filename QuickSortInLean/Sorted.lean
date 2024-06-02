@@ -3,7 +3,7 @@ import QuickSortInLean.Vec
 import QuickSortInLean.QuickSort
 import QuickSortInLean.Induction
 import QuickSortInLean.QuickSortPermutation
-import Std.Data.Fin.Basic
+import Batteries.Data.Fin.Basic
 
 def sortedRange [Ord α] (arr : Vec α n) (first last : Nat) : Prop :=
   ∀i j : Fin n, first ≤ i → i ≤ j → j ≤ last → (compare arr[i] arr[j]).isLE
@@ -25,7 +25,7 @@ theorem partitionImpl.loop_invariant {α : Type} [Ord α] {n : Nat}
   (result : { mid : Fin n // first ≤ mid ∧ mid ≤ j } × Vec α n)
   (eq : partitionImpl arr first i j fi ij = result) :
   LoopInvariant result.2 first first ⟨result.1.val, Nat.lt_of_le_of_lt result.1.property.2 j.isLt⟩ last := by
-  induction arr, first, i, j, fi, ij using partitionImpl.induct with
+  induction arr, first, i, j, fi, ij using partitionImpl.induct' with
   | base arr first i j fi _ h =>
     revert result
     simp [*]
@@ -144,7 +144,7 @@ theorem partitionImpl.first_eq {α : Type} [Ord α] {n : Nat}
   (arr : Vec α n) (first i j : Fin n)
   (fi : first ≤ i) (ij : i ≤ j) :
   (partitionImpl arr first i j fi ij).2[first] = arr[first] := by
-  induction arr, first, i, j, fi, ij using partitionImpl.induct with
+  induction arr, first, i, j, fi, ij using partitionImpl.induct' with
   | base => simp [*]
   | step_lt => simp [*]
   | step_ge arr first i j _ ij fi =>
@@ -267,7 +267,7 @@ theorem quickSortImpl.get_gt {α : Type} [Ord α] {n : Nat}
 theorem quickSortImpl_sortedRange {α : Type} [Order α] {n : Nat}
   (arr : Vec α n) (first : Nat) (last : Fin n) :
   sortedRange (quickSortImpl arr first last) first last := by
-  induction arr, first, last using quickSortImpl.induct with
+  induction arr, first, last using quickSortImpl.induct' with
   | base arr first last h =>
     simp [*]
     intro i j fi ij jl

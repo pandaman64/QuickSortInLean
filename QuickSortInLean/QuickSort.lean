@@ -1,6 +1,6 @@
 import QuickSortInLean.Order
 import QuickSortInLean.Vec
-import Std.Data.Nat.Lemmas
+import Batteries.Data.Nat.Lemmas
 
 abbrev Fin.prev {n : Nat} (i : Fin n) : Fin n := ⟨i.val - 1, Nat.lt_of_le_of_lt (Nat.sub_le ..) i.isLt⟩
 
@@ -19,7 +19,7 @@ def partitionImpl {α : Type} [Ord α]
       | (⟨mid, hm⟩, arr) => (⟨mid, ⟨hm.1, Nat.le_trans hm.2 (Nat.sub_le ..)⟩⟩, arr)
   else
     (⟨j, ⟨Nat.le_trans fi ij, Nat.le_refl _⟩⟩, arr)
-termination_by _ => i.val
+termination_by i.val
 
 def partition {α : Type} [Ord α]
   {n : Nat} (arr : Vec α n) (first last : Fin n) (fl : first ≤ last) :
@@ -63,7 +63,7 @@ def quickSortImpl {α : Type} [Ord α]
     quickSortImpl arr (mid + 1) last
   else
     arr
-termination_by _ => (last.val, last.val - first)
+termination_by (last.val, last.val - first)
 
 def quickSort' {α : Type} [Ord α] {n : Nat} (arr : Vec α n) : Vec α n :=
   if _ : n > 0 then

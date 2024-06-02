@@ -34,13 +34,9 @@ def permuted.cast_last {α : Type} {n first last last' : Nat} {arr arr' : Vec α
   | .refl => .refl
   | .step i j fi ij jl p => .step i j fi ij (Nat.le_trans jl h) (p.cast_last h)
 
-theorem permuted.trans : permuted n first last arr arr' → permuted n first last arr' arr'' → permuted n first last arr arr'' := by
-  intro h
-  induction h with
-  | refl => intro; assumption
-  | step i j fi ij jl _ ih =>
-    intro h'
-    exact permuted.step i j fi ij jl (ih h')
+def permuted.trans : permuted n first last arr arr' → permuted n first last arr' arr'' → permuted n first last arr arr''
+  | .refl, h' => h'
+  | .step i j fi ij jl p, h' => .step i j fi ij jl (p.trans h')
 
 def permuted.to_map (p : permuted n first last arr arr') : Fin n → Fin n :=
   match p with
@@ -80,12 +76,12 @@ theorem permuted_map_invertible (p : permuted n first last arr1 arr2) : invertib
       cases decEq (f' y) i with
       | isFalse nfyi =>
         cases decEq (f' y) j with
-        | isFalse nfyj => simp [nfyi, nfyj, permuted.to_map, h2]
+        | isFalse nfyj => simp [nfyi, nfyj, permuted.to_map, h2, f]
         | isTrue fyj =>
-          simp [nfyi, fyj, permuted.to_map]
+          simp [nfyi, fyj, permuted.to_map, f]
           rw [←(congrArg p.to_map fyj), h2]
       | isTrue fyi =>
-        simp [fyi, permuted.to_map]
+        simp [fyi, f, permuted.to_map]
         have : (if j = i then j else i) = i := by simp
         rw [this, ←(congrArg p.to_map fyi), h2]
     exact ⟨g, ⟨gf, fg⟩⟩
@@ -124,14 +120,14 @@ theorem permuted_map_index_in_range (p : permuted n first last arr1 arr2) (k : F
     have : first ≤ k'.val ∧ k'.val ≤ last := by
       match decEq k i, decEq k j with
       | isTrue ki, _ =>
-        simp [ki]
+        simp [k', ki]
         exact ⟨Nat.le_trans fi ij, jl⟩
       | isFalse ki, isTrue kj =>
-        simp [ki]
+        simp [k', ki]
         simp [kj]
         exact ⟨fi, Nat.le_trans ij jl⟩
       | isFalse ki, isFalse kj =>
-        simp [ki, kj]
+        simp [k', ki, kj]
         exact ⟨fk, kl⟩
     exact ih k' this.1 this.2
 
@@ -148,22 +144,22 @@ theorem permuted_map_index_in_range_inv (p : permuted n first last arr1 arr2) (k
 
     have : (if k'' = i then j else if k'' = j then i else k'') = k' := by
       match decEq k' i, decEq k' j with
-      | isTrue ki, _ => simp [ki]
-      | _, isTrue kj => simp [kj]
-      | isFalse ki, isFalse kj => simp [ki, kj]
+      | isTrue ki, _ => simp [k'', ki]
+      | _, isTrue kj => simp [k'', kj]
+      | isFalse ki, isFalse kj => simp [k'',ki, kj]
     rw [this]
 
     have : first ≤ k''.val ∧ k''.val ≤ last := by
       match decEq k' i, decEq k' j with
       | isTrue ki, _ =>
-        simp [ki]
+        simp [k'', ki]
         exact ⟨Nat.le_trans fi ij, jl⟩
       | isFalse ki, isTrue kj =>
-        simp [ki]
+        simp [k'', ki]
         simp [kj]
         exact ⟨fi, Nat.le_trans ij jl⟩
       | isFalse ki, isFalse kj =>
-        simp [ki, kj]
+        simp [k'', ki, kj]
         exact ⟨fk', kl'⟩
 
     exact ⟨index, this.1, this.2⟩

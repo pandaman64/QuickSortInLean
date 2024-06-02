@@ -15,4 +15,4 @@ lean_exe «quicksortinlean» where
   -- Remove this line if you do not need such functionality.
   supportInterpreter := true
 
-require «std» from git "https://github.com/leanprover/std4" @ "main"
+require «batteries» from git "https://github.com/leanprover-community/batteries" @ "main"

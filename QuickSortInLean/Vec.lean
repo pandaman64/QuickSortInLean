@@ -1,6 +1,4 @@
-import Std.Data.Option.Basic
-import Std.Data.Fin.Basic
-import Std.Data.Array.Lemmas
+import Batteries.Data.Array.Lemmas
 
 /--
 When proving termination and the safety of array operation, it's crucial to show

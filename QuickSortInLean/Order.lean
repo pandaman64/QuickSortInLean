@@ -1,4 +1,4 @@
-import Std.Data.Ord
+import Init.Data.Ord
 
 -- Workaround for Ord not inheriting from LT
 infix:50 " <o " => ltOfOrd.lt
@@ -39,7 +39,6 @@ theorem Order.refl [Order α] {x : α} : x ≤o x := by
 
 theorem Order.irrefl [Order α] {x : α} : ¬x <o x := by
   simp [ltOfOrd, cmp_eq_of_eq]
-  decide
 
 theorem Order.le_of_not_lt [Order α] {x y : α} (h : ¬(y <o x)) : x ≤o y := by
   show (compare x y).isLE
@@ -47,7 +46,7 @@ theorem Order.le_of_not_lt [Order α] {x y : α} (h : ¬(y <o x)) : x ≤o y := 
   | .lt | .eq => decide
   | .gt =>
     simp [ltOfOrd] at h
-    have : compare y x == .lt := by rw [←symm, cmp]; decide
+    have : compare y x = .lt := by rw [←symm, cmp]; decide
     rw [this] at h
     contradiction
 

@@ -1,6 +1,6 @@
 import QuickSortInLean.QuickSort
 
-theorem partitionImpl.induct {α : Type} [Ord α] {n : Nat}
+def partitionImpl.induct' {α : Type} [Ord α] {n : Nat}
   (motive : (arr : Vec α n) → (first i j : Fin n) → (fi : first ≤ i) → (ij : i ≤ j) → Sort u)
   (arr : Vec α n) (first i j : Fin n)
   (fi : first ≤ i) (ij : i ≤ j)
@@ -19,7 +19,7 @@ theorem partitionImpl.induct {α : Type} [Ord α] {n : Nat}
     if _ : arr[i] <o arr[first] then
       have : i.val - 1 ≤ j := Nat.le_trans (Nat.sub_le ..) ij
       apply step_lt arr first i j fi ij h (by assumption) (by assumption)
-      apply partitionImpl.induct motive
+      apply partitionImpl.induct' motive
         arr first i.prev j
         (by assumption) (by assumption)
         base step_lt step_ge
@@ -27,13 +27,13 @@ theorem partitionImpl.induct {α : Type} [Ord α] {n : Nat}
       have : i.val - 1 ≤ j.val - 1 := Nat.sub_le_sub_right ij 1
       let arr' := arr.swap i j
       apply step_ge arr first i j fi ij h (by assumption) (by assumption) (by assumption)
-      apply partitionImpl.induct motive
+      apply partitionImpl.induct' motive
         arr' first i.prev j.prev
         (by assumption) (by assumption)
         base step_lt step_ge
   else
     apply base arr first i j fi ij h
-termination_by _ => i.val
+termination_by i.val
 
 @[simp]
 theorem partitionImpl.simp_base {α : Type} [Ord α]
@@ -66,7 +66,7 @@ theorem partitionImpl.simp_step_ge {α : Type} [Ord α]
   rw [partitionImpl]
   simp [*, dbgTraceIfShared]
 
-theorem quickSortImpl.induct {α : Type} [Ord α] {n : Nat}
+def quickSortImpl.induct' {α : Type} [Ord α] {n : Nat}
   (motive : (arr : Vec α n) → (first : Nat) → (last : Fin n) → Sort u)
   (arr : Vec α n) (first : Nat) (last : Fin n)
   (base : ∀arr (first : Nat) (last : Fin n) (_ : ¬first < last), motive arr first last)
@@ -90,13 +90,13 @@ theorem quickSortImpl.induct {α : Type} [Ord α] {n : Nat}
 
     apply step arr first last lt parted (Eq.refl parted)
     case ih₁ =>
-      apply quickSortImpl.induct motive parted.2 first mid.prev base step
+      apply quickSortImpl.induct' motive parted.2 first mid.prev base step
     case ih₂ =>
-      apply quickSortImpl.induct motive (quickSortImpl parted.2 first mid.prev) (mid + 1) last
+      apply quickSortImpl.induct' motive (quickSortImpl parted.2 first mid.prev) (mid + 1) last
         base step
   else
     apply base arr first last lt
-termination_by _ => (last.val, last - first)
+termination_by (last.val, last - first)
 
 @[simp]
 theorem quickSortImpl.simp_base {α : Type} [Ord α]
